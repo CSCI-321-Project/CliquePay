@@ -1,34 +1,112 @@
-import { ArrowRight, Users, Receipt, Wallet, CreditCard, Sparkles, ChevronRight } from "lucide-react";
+import { ArrowRight, Users, Receipt, Wallet, CreditCard, Sparkles, ChevronRight, Menu, X } from "lucide-react";
 import { FeatureCard } from '../components/FeatureCard';
 import { Metric } from '../components/Metric';
 import { useNavigate } from 'react-router-dom';
 import logo from '/images/CliquePay Logo.png';
+import { useState } from "react";
 import '../App.css';
 
 export default function CliquePay() {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const navLinks = [
+    { name: 'Features', path: '/' },
+    { name: 'Pricing', path: '/' },
+    { name: 'About', path: '/' },
+    { name: 'Contact', path: '/' },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-yellow-400 to-yellow-500">
       {/* Navigation */}
-      <nav className="p-6 flex justify-between items-center">
-        <div 
-          onClick={() => navigate('/')} 
-          className="cursor-pointer hover:scale-105 transition-transform"
-        >
-          <img 
-            src={logo} 
-            alt="CliquePay Logo" 
-            className="h-28 w-auto"
-          />
-        </div>
-        <div 
-          className="text-gray-900 hover:bg-gradient-to-r hover:from-green-600 hover:to-pink-600 hover:text-transparent hover:bg-clip-text font-semibold cursor-pointer flex items-center transition-all duration-300"
-          onClick={() => navigate('/download')}
-        >
-          Download App <ArrowRight className="ml-2 h-4 w-4" />
-        </div>
-      </nav>
+      <div className="px-4 sm:px-6 lg:px-8 pt-4">
+        <nav className="max-w-7xl mx-auto">
+          <div className="bg-white/70 backdrop-blur-md rounded-4xl shadow-lg">
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                {/* Logo */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src={logo} 
+                    alt="CliquePay Logo" 
+                    className="h-12 w-auto cursor-pointer"
+                    onClick={() => navigate('/')}
+                  />
+                </div>
+
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex items-center space-x-8">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.path}
+                      className="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      {link.name}
+                    </a>
+                  ))}
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+
+                {/* Mobile menu button */}
+                <div className="md:hidden">
+                  <button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-green-600 hover:bg-gray-100"
+                  >
+                    {isMenuOpen ? (
+                      <X className="block h-6 w-6" />
+                    ) : (
+                      <Menu className="block h-6 w-6" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Navigation */}
+            {isMenuOpen && (
+              <div className="md:hidden border-t border-gray-100">
+                <div className="px-2 pt-2 pb-3 space-y-1">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.path}
+                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 rounded-md"
+                    >
+                      {link.name}
+                    </a>
+                  ))}
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 rounded-md"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => navigate('/download')}
+                    className="w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50 rounded-md"
+                  >
+                    Download App
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </nav>
+      </div>
 
       {/* Hero Section */}
       <main className="flex-1">

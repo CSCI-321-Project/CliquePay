@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import Cookies from "js-cookie"
 import { Mail, Phone, Calendar, DollarSign, Clock, ArrowLeft, RefreshCw, Camera, Edit, Trash2, AlertTriangle } from "lucide-react"
 import ProfilePhotoModal from '../components/ProfilePhotoModal';
+import Loading from '../components/Loading';
 
 const UserProfile = () => {
   const [user, setUser] = useState(null)
@@ -111,6 +112,17 @@ const UserProfile = () => {
     </div>
   );
 
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-2xl text-white">
+        {error}
+      </div>
+    );
+  }
 
   if (!user) {
     return (

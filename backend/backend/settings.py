@@ -28,6 +28,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite's default development server
 ]
 
+if os.getenv('DJANGO_ALLOWED_HOSTS'):
+    # Add any additional hosts with proper scheme
+    additional_hosts = [
+        f"https://{host.strip()}" for host in os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
+        if host.strip()
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -57,15 +64,24 @@ CSRF_COOKIE_NAME = 'csrf_token'
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Strict'
 CSRF_COOKIE_SECURE = True  # For HTTPS
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']  # Add your frontend URL
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",  # Vite's default development server
+]
+
+if os.getenv('DJANGO_ALLOWED_HOSTS'):
+    # Add any additional hosts with proper scheme
+    additional_hosts = [
+        f"https://{host.strip()}" for host in os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
+        if host.strip()
+    ]
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
 
 # AWS COGNITO CREDENTIALS
 COGNITO_AWS_REGION = os.getenv('COGNITO_AWS_REGION')
@@ -149,7 +165,7 @@ DATABASES = {
 
 # Google Cloud Storage settings
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    r"D:\WatchTower\WatchTower\balmy-renderer-451718-u7-3b6459d4e0fc.json"
+    os.path.join(BASE_DIR, "balmy-renderer-451718-u7-3b6459d4e0fc.json")
 )
 GS_BUCKET_NAME = os.getenv('GS_BUCKET_NAME')
 GS_PROJECT_ID = os.getenv('GS_PROJECT_ID')
