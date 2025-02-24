@@ -122,8 +122,6 @@ class DatabaseService:
                 user.full_name = kwargs['full_name']
             if 'phone_number' in kwargs:
                 user.phone_number = kwargs['phone_number']
-            if 'avatar_url' in kwargs:
-                user.avatar_url = kwargs['avatar_url']
             if 'currency' in kwargs:
                 user.currency = kwargs['currency']
 

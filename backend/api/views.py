@@ -513,7 +513,6 @@ def update_user_profile(request):
             update_result = db.update_user_details(decoded['user_sub'],
                 full_name=serializer.validated_data.get('full_name'),
                 phone_number=serializer.validated_data.get('phone_number'),
-                avatar_url=serializer.validated_data.get('avatar_url'),
                 currency=serializer.validated_data.get('currency')
             )
             if update_result['status'] == 'SUCCESS':

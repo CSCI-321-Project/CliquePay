@@ -75,10 +75,14 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class UpdateUserProfileSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
-    full_name = serializers.CharField(required=False, max_length=150)
-    phone_number = serializers.CharField(required=False, max_length=16)
-    avatar_url = serializers.URLField(required=False)
-    currency = serializers.CharField(required=False, max_length=10)
+    full_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    currency = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    avatar_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    def validate(self, data):
+        # Only include fields that have values
+        return {k: v for k, v in data.items() if v is not None and v != ''}
 
 class FriendRequestSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
