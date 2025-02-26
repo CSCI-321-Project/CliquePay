@@ -18,7 +18,7 @@ export const ProfileDropdown = ({ onLogout }) => {
           return;
         }
 
-        const response = await fetch('http://127.0.0.1:8000/api/user-profile/', {
+        const response = await fetch('/api/user-profile/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

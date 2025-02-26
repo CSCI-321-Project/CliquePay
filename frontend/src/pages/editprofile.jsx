@@ -20,7 +20,7 @@ const EditProfile = () => {
       try {
         const id_token = Cookies.get("idToken")
 
-        const response = await fetch('http://127.0.0.1:8000/api/user-profile/', {
+        const response = await fetch('/api/user-profile/', {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -40,7 +40,7 @@ const EditProfile = () => {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/update-user-profile/', {
+      const response = await fetch('/api/update-user-profile/', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

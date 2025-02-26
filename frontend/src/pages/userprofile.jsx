@@ -23,7 +23,7 @@ const UserProfile = () => {
           return
         }
 
-        const response = await fetch("http://127.0.0.1:8000/api/user-profile/", {
+        const response = await fetch("/api/user-profile/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -51,7 +51,7 @@ const UserProfile = () => {
   const handleDeleteProfile = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/delete-profile/', {
+      const response = await fetch('/api/delete-profile/', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

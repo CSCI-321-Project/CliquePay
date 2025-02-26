@@ -272,7 +272,7 @@ export const SecurityUtils = {
         }
 
         const response = await SecurityUtils.csrf.fetchWithCSRF(
-          'http://127.0.0.1:8000/api/verify-user-access/',  
+          '/api/verify-user-access/',  
           { 
             method: 'POST',
             body: JSON.stringify({

@@ -45,7 +45,7 @@ const ProfilePhotoModal = ({ isOpen, onClose, currentPhoto, onPhotoUpdate }) => 
     formData.append('id_token', Cookies.get('idToken'));
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/update-profile-photo/', {
+      const response = await fetch('/api/update-profile-photo/', {
         method: 'POST',
         body: formData,
       });
@@ -70,7 +70,7 @@ const ProfilePhotoModal = ({ isOpen, onClose, currentPhoto, onPhotoUpdate }) => 
     setError(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/reset-profile-photo/', {
+      const response = await fetch('/api/reset-profile-photo/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
