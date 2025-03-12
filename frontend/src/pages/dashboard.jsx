@@ -5,10 +5,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Bell, CreditCard, DollarSign, Home, LogOut, Settings, User, Users, Wallet, BarChart3 } from "lucide-react"
 import PropTypes from "prop-types"
 import { renewTokens } from '../utils/RenewTokens';
-<<<<<<< HEAD
-=======
 // import { useSecurity } from '../context/SecurityContext';
->>>>>>> 8bd2216cb773fc9c0355a7985b930246950a7d90
 import Cookies from 'js-cookie';
 
 // Import UI components
