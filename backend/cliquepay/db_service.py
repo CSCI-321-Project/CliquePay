@@ -1510,7 +1510,7 @@ class DatabaseService:
             }
     
     @staticmethod
-    def edit_group_details(user_sub, group_id, group_name=None, group_description=None):
+    def edit_group(user_sub, group_id, group_name=None, group_description=None):
         """
         Edit the group details.
 
