@@ -17,7 +17,7 @@ export default function ChatsContainer() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
   // Format group data helper
-  const formatGroupData = (groups) => {
+  const   formatGroupData = (groups) => {
     if (!groups || !Array.isArray(groups)) return [];
     
     return groups.map((group) => {

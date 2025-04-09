@@ -96,6 +96,7 @@ class DatabaseService:
                 if(friendship.status == 'BLOCKED' or friendship.status == 'blocked'):
                     friends_list.append({
                         'friend_id': "null",
+                        'username': friend.name,
                         'friend_name': friend.full_name,
                         'email': "null",
                         'profile_photo': friend.avatar_url,
@@ -106,6 +107,7 @@ class DatabaseService:
                 else:
                     friends_list.append({   
                         'friend_id': friend.id,
+                        'username': friend.name,
                         'friend_name': friend.full_name,
                         'email': friend.email,
                         'profile_photo': friend.avatar_url,
@@ -1615,3 +1617,4 @@ class DatabaseService:
                 'status': 'ERROR',
                 'message': str(e)
             }
+    
