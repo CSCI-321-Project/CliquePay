@@ -698,18 +698,7 @@ const GroupChatContainer = ({ groupId, onBack }) => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-1">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-700"
-                  onClick={() => setShowInviteMembers(prev => !prev)}
-                >
-                  <UserPlus className="h-5 w-5" />
-                </Button>
-                <InviteMembersDropdown />
-              </div>
+            <div className="flex items-center space-x-1"> 
               <Button 
                 variant="ghost" 
                 size="icon" 
