@@ -147,8 +147,8 @@ def api_root(request, format=None):
                 'method': 'POST',
                 'description': 'create expense.'
             },
-            'get-expenses': {
-                'url': reverse('get_expenses', request=request, format=format),
+            'transactions': {
+                'url': reverse('transactions', request=request, format=format),
                 'method': 'POST',
                 'description': 'get expense.'
             },
@@ -1113,16 +1113,22 @@ def create_expense(request):
     )
 
 @api_view(['GET'])
-def get_expenses(request):
+def transactions(request):
     """
-    Get all expenses for the authenticated user.
+    Get all transactions for the authenticated user, including:
+    - Expenses they paid for
+    - Expenses they owe money for
+    - Expenses they're involved with in any way
+    
     Query Parameters:
     {
-        "id_token": "your-id-token"
+        "idToken": "your-id-token",
+        "filter": "all|paid|owed"  # Optional, defaults to "all"
     }
     """
     try:
         id_token = request.query_params.get('idToken')
+        filter_type = request.query_params.get('filter', 'all')
         
         if not id_token:
             return Response({
@@ -1144,17 +1150,30 @@ def get_expenses(request):
                 "message": "Invalid token"
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        expenses = Expense.objects.filter(
-            models.Q(paid_by=user_id) | models.Q(splits=user_id)
-        ).distinct()
+        # Query expenses based on filter
+        if filter_type == 'paid':
+            # Expenses the user paid for
+            expenses = Expense.objects.filter(paid_by=user_id)
+        elif filter_type == 'owed':
+            # Expenses where the user owes money
+            expenses = Expense.objects.filter(
+                splits__user=user_id,
+                splits__is_paid=False
+            ).exclude(paid_by=user_id)
+        else:
+            # All expenses the user is involved with (default)
+            expenses = Expense.objects.filter(
+                models.Q(paid_by=user_id) | 
+                models.Q(splits__user=user_id)
+            ).distinct()
 
-        
         serializer = ExpenseGetSerializer(expenses, many=True)
-
+        
+        print(serializer.data)
         return Response({
             "status": "Returned",
             "message": "Expenses fetched successfully",
-            "expenses": serializer.data
+            "expenses": serializer.data,
         })
         
     except Exception as e:

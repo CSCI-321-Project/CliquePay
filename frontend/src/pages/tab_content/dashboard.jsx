@@ -11,7 +11,6 @@ const DashboardContent = ({billSummary, setShowSettleUpModal, showSettleUpModal,
 
     const handleSettleUp = (amount, recipient) => {
       setSettleUpDetails({ amount, recipient });
-      console.log(amount, recipient);
       setShowSettleUpModal(true);
     };
 

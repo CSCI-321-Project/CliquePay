@@ -6,7 +6,6 @@ import Cookies from 'js-cookie';
 import { ProfileDropdown } from "../components/profile/ProfileDropdown"
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-// import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { PageLayout, Section, Header, Footer } from "../components/layout/PageLayout"
 import ChatsContainer from "../components/chats/ChatsContainer";
