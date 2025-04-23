@@ -173,9 +173,6 @@ const SettleUpModal = ({ onClose, onConfirm, amount, isProcessing, onSuccess, se
                         friendsData.push(settlement);
                     }
                 });
-                
-                console.log('groups data: ', groupsData)
-                console.log('friends data: ', friendsData)
                 setFriends(friendsData);
                 setGroups(groupsData);
                 setSettlements(data.settlements);
@@ -230,13 +227,6 @@ const SettleUpModal = ({ onClose, onConfirm, amount, isProcessing, onSuccess, se
                                 </svg>
                             </div>
                             <h3 className="text-lg font-medium text-white">Payment Successful!</h3>
-                            {/* <p className="text-gray-400 mt-2">
-                                {settlementType === 'all' 
-                                    ? 'All outstanding balances have been settled.' 
-                                    : settlementType === 'groups'
-                                    ? 'Group expenses have been settled successfully.'
-                                    : `Your payment to ${recipient || 'your friend'} has been settled.`}
-                            </p> */}
                         </div>
                     ) : (
                         <div>

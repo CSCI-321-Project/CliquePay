@@ -341,12 +341,14 @@ def user_login(request):
             result = cognito.login_user(username=req['username'],
             password= serializer.validated_data['password'])
             if result['status'] == 'SUCCESS':
+                print(req)
                 return Response({
                     'status': 'success',
                     'message': result['message'],
                     'access_token': result['access_token'],
                     'refresh_token': result['refresh_token'],
-                    'id_token': result['id_token']
+                    'id_token': result['id_token'],
+                    'username': req['username'],
                 }, status=status.HTTP_200_OK)
             
             return Response({
@@ -1169,7 +1171,6 @@ def transactions(request):
 
         serializer = ExpenseGetSerializer(expenses, many=True)
         
-        print(serializer.data)
         return Response({
             "status": "Returned",
             "message": "Expenses fetched successfully",
@@ -1338,7 +1339,6 @@ def record_payment(request):
                 expense__group_id=group_id,
                 is_paid=False
             )
-            print(splits_to_settle.values())
 
         else:
             recipient_id = serializer.validated_data['user_id']

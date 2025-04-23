@@ -7,6 +7,7 @@ import PropTypes from "prop-types"
 import { Mail, Phone, Calendar, DollarSign, Clock, ArrowLeft, Camera, Edit, Trash2, AlertTriangle, CreditCard } from "lucide-react"
 import { PageLayout, Header, Section, Footer } from "../components/layout/PageLayout"
 import ProfilePhotoModal from "../components/ProfilePhotoModal"
+import { SecurityUtils } from "../utils/Security"
 // Info Item Component with updated styling
 const InfoItem = ({ icon, text, label }) => (
   <div className="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-zinc-800 group">
@@ -33,6 +34,7 @@ const UserProfile = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const navigate = useNavigate()
+
 
   useEffect(() => {
     const fetchUserProfile = async () => {

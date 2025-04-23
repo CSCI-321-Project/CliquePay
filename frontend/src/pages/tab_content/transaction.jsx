@@ -10,14 +10,16 @@ const TransactionContent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [userId, setUserId] = useState(null);
+  const [userName, setUserName] = useState(null);
   
   useEffect(() => {
+    
     fetchTransactions(activeFilter);
   }, [activeFilter]);
 
   const fetchTransactions = async (filter = 'all') => {
     try {
+      console.log();
       setLoading(true);
       const idToken = await SecurityUtils.getCookie('idToken');
       const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -28,16 +30,18 @@ const TransactionContent = () => {
           'Accept': 'application/json',
         }
       });
-
+      
       if (!response.ok) {
         throw new Error(`Network response was not ok: ${response.status}`);
       }
       
       const data = await response.json();
       if (data.status === "Returned" && data.expenses) {
-        if (data.userId) {
-          setUserId(data.userId);
+        const name = await SecurityUtils.getCookie('username');
+        if (name) {
+          setUserName(name);
         }
+        
         
         setTransactions({
           expenses: data.expenses,
@@ -55,9 +59,7 @@ const TransactionContent = () => {
 
   return (
     <TabsContent value="transactions" className="space-y-6">
-  
-      {/* Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         
         <div className="flex gap-2 p-1 bg-zinc-800/70 rounded-lg border border-zinc-700/50">
           <Button 
@@ -104,8 +106,7 @@ const TransactionContent = () => {
               // Since paid_by is a full name and we only have userId, 
               // we need to track if the backend tells us the user is the payer
               // We'll look for this in the response data
-              const userIsPayer = transactions.current_user_expenses && 
-                                  transactions.current_user_expenses.includes(expense.id);
+              const userIsPayer = expense.paid_by === userName
               
               return (
                 <div key={expense.id || index} className="p-4 sm:p-5 hover:bg-zinc-700/20 transition-colors">
