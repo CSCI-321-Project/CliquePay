@@ -191,10 +191,10 @@ export default function Dashboard() {
           <Logo />
           <div className="flex items-center gap-4 relative z-[100]">
             <Button 
-          variant="ghost" 
-          className="hover:bg-zinc-800 relative group"
-          title="Friend List"
-          onClick={() => navigate('/friends')}
+            variant="ghost" 
+            className="hover:bg-zinc-800 relative group"
+            title="Friend List"
+            onClick={() => navigate('/friends')}
             >
           <UsersRound className="h-auto w-auto text-white" />
           {getTotalUnreadCount(groupChats, directChats) > 0 && (
@@ -308,4 +308,3 @@ export default function Dashboard() {
     </PageLayout>
   )
 }
-

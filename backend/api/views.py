@@ -1473,7 +1473,7 @@ def get_financial_summary(request):
         
         total_you_owe = sum(float(split.remaining_amount) for split in you_owe_splits)
         total_they_owe = sum(float(split.remaining_amount) for split in they_owe_splits)
-        total_bill = total_you_owe + total_they_owe
+        total_bill = total_they_owe - total_you_owe
 
         
         return Response({
