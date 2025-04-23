@@ -85,7 +85,7 @@ export default function Home() {
           
           {/* Absolutely positioned visualizer overlay */}
           <div className="absolute top-0 right-0 md:right-0 w-full md:w-1/2 h-full flex items-center justify-center pointer-events-none">
-            <div className="w-9/12 md:w-8/12 relative z-10">
+            <div className="w-8/12 md:w-7/12 relative z-10">
               <BillSplittingVisualization />
             </div>
             <div className="absolute -bottom-6 -right-6 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl -z-10"></div>

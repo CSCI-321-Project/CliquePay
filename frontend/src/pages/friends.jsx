@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../utils/UserContext'
 import AuthenticateUser from '../utils/AuthenticateUser';
@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import Loading from '../components/Loading';
-import { SecurityUtils } from '../utils/Security';
-import { Users, UserPlus, Search, CreditCard, ArrowLeftFromLineIcon, X, UserMinus, UserX } from "lucide-react";
+import { SecurityUtils } from '../utils/security';
+import { Users, UserPlus, Search, CreditCard, ArrowLeftFromLine, LogOut, X, UserMinus, UserX } from "lucide-react";
 import { set } from 'zod';
 
 // Simple Logo component
@@ -526,9 +526,12 @@ const Content = () => {
                 <Logo />
                 <div className="flex items-center gap-4">
                     <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleDashboardClick}>
-                        <ArrowLeftFromLineIcon className="h-4 w-4 mr-2" />
+                        <ArrowLeftFromLine className="h-4 w-4 mr-2" />
                         <span>Dashboard</span>
-                    
+                    </Button>
+                    <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => navigate('/login')}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        <span>Logout</span>
                     </Button>
                 </div>
             </Header>
@@ -611,9 +614,9 @@ const Content = () => {
                                     You have {friends.length} friends
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                          <CardContent className="space-y-4">
                                 {friends.length === 0 ? (
-                                    <p className="text-center text-zinc-400 py-4">You don't have any friends yet. Add some friends to get started!</p>
+                                    <p className="text-center text-zinc-400 py-4">You don&apos;t have any friends yet. Add some friends to get started!</p>
                                 ) : (
                                     friends.map(friend => (
                                         <FriendCard 
@@ -640,7 +643,7 @@ const Content = () => {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {requests.length === 0 ? (
-                                    <p className="text-center text-zinc-400 py-4">You don't have any pending friend requests.</p>
+                                    <p className="text-center text-zinc-400 py-4">You don&apos;t have any pending friend requests.</p>
                                 ) : (
                                     requests.map(request => (
                                         <RequestCard 
@@ -700,12 +703,9 @@ const Content = () => {
                                             ))
                                         : hasSearched && (
                                             <p className="text-center text-zinc-400 py-4">
-                                                No results found for "{searchTerm}"
+                                                No results found for &quot;{searchTerm}&quot;
                                             </p>
                                         )}
-                                         
-
-                                            
                                 </div>
                             </CardContent>
                         </Card>
@@ -721,7 +721,7 @@ const Content = () => {
                         </CardHeader>
                         <CardContent className="space-y-4">
                           {sentRequests.length === 0 ? (
-                            <p className="text-center text-zinc-400 py-4">You haven't sent any friend requests yet.</p>
+                            <p className="text-center text-zinc-400 py-4">You haven&apos;t sent any friend requests yet.</p>
                           ) : (
                             sentRequests.map(request => (
                               <div key={request.friendship_id} className="flex items-center justify-between p-4 bg-zinc-800 rounded-lg">

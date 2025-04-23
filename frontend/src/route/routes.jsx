@@ -11,6 +11,7 @@ import Friends from "../pages/friends";
 import ForgotPassword from "../pages/forgot";
 import { ErrorDisplay } from '../components/errorHandling/ErrorBoundary';
 import NotFound from '../pages/not-found';
+import AccountSettings from "../pages/accountsettings";
 
 const router = createBrowserRouter([
   {
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: "profile/edit", element: <EditProfile /> },
       { path: "friends", element: <Friends /> },
       { path: "forgot", element: <ForgotPassword/>},
+      { path: "accountsettings", element: <AccountSettings /> }
     ]
   },
   {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
-import { SecurityUtils } from '../../utils/Security';
+import { SecurityUtils } from '../../utils/security';
 import PropTypes from "prop-types";
 
 const InviteMembersList = ({ groupId, onInviteSuccess }) => {
