@@ -1,9 +1,8 @@
-import { TabsContent } from "../../components/ui/tabs"
+import { TabsContent } from "@radix-ui/react-tabs"
 import { Button } from "../../components/ui/button"
 import { useEffect, useState } from "react"
 import { SecurityUtils } from "../../utils/Security"
 import { CreditCard, ArrowUpRight, ArrowDownLeft, DollarSign, Calendar, Info, Search, Filter, Users, Check } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 
 const TransactionContent = () => {
   const [transactions, setTransactions] = useState({ expenses: [], summary: {} });

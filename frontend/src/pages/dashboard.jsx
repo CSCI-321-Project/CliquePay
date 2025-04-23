@@ -1,11 +1,11 @@
-import { AlertTriangle, Bell, CreditCard, CircleDollarSign, DollarSign, Home, Users, BarChart3, MessagesSquare, MessageSquareDot, UsersRound } from "lucide-react";
+import { AlertTriangle, Bell, CreditCard, CircleDollarSign, DollarSign, Home, Users, BarChart3, MessagesSquare, MessageSquareDot, UsersRound, PieChart, LineChart } from "lucide-react";
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { renewTokens } from '../utils/RenewTokens';
 import Cookies from 'js-cookie';
 import { ProfileDropdown } from "../components/profile/ProfileDropdown"
 import { Button } from "../components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { PageLayout, Section, Header, Footer } from "../components/layout/PageLayout"
 import ChatsContainer from "../components/chats/ChatsContainer";
@@ -14,7 +14,7 @@ import { SecurityUtils } from "../utils/Security";
 import { PaymentModal } from "./newpayment";
 import TransactionContent from "./tab_content/transaction";
 import DashboardContent from "./tab_content/dashboard";
-
+import AnalyticsContent from "./tab_content/analytics";
 const Logo = () => (
   <div className="flex items-center gap-2">
     <div className="bg-purple-600 w-8 h-8 rounded-md flex items-center justify-center">
@@ -266,17 +266,7 @@ export default function Dashboard() {
 
           <TransactionContent />
 
-          <TabsContent value="analytics">
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardHeader>
-                <CardTitle>Analytics</CardTitle>
-                <CardDescription className="text-gray-400">Track your spending patterns and insights.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-400">Your spending analytics will appear here.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <AnalyticsContent />
 
           <TabsContent value="Chats">
             <ChatsContainer 
