@@ -149,7 +149,7 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
             group_id: selectedGroupId,
             total_amount: parseFloat(amount),
             description: description,
-            paid_by: token, 
+            paid_by: encodedToken, 
             deadline: deadline,
           }
         : {

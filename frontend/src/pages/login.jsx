@@ -59,6 +59,8 @@ export default function Login() {
           const data = await response.json();
 
             if (response.ok) {
+                console.log("Login successful:", data);
+                Cookies.set('username', data.username)
                 // Refresh token - long lived (365 days)
                 Cookies.set('refreshToken', data.refresh_token, {
                     expires: 365,

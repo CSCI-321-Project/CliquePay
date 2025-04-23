@@ -2,6 +2,7 @@ import { z } from 'zod';
 import DOMPurify from 'dompurify';
 import Cookies from 'js-cookie';
 import { renewTokens } from './RenewTokens';
+import { set } from 'date-fns';
 const passwordSchema = z.string()
   .min(8, "Password must be at least 8 characters long")
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
@@ -19,6 +20,7 @@ const phoneSchema = z.string()
   .optional();
 
 export const SecurityUtils = {
+
   validatePassword: (password) => {
     try {
       passwordSchema.parse(password);
@@ -260,7 +262,7 @@ export const SecurityUtils = {
         credentials: 'include',
         headers,
       });
-    }
+    },
 },
 
   auth: {

@@ -345,7 +345,7 @@ class ExpenseUpdateSerializer(serializers.ModelSerializer):
         fields = ['description', 'total_amount', 'deadline', 'receipt_url', 'remaining_amount', 'total_amount']
     
 class ExpenseGetSerializer(serializers.ModelSerializer):
-    paid_by = serializers.CharField(source='paid_by.full_name', read_only=True)
+    paid_by = serializers.CharField(source='paid_by.name', read_only=True)
     friend_name = serializers.CharField(source='friend_id.full_name', read_only=True)
     group_name = serializers.CharField(source='group_id.name', read_only=True)
 

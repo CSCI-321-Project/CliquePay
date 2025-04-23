@@ -7,6 +7,7 @@ import PropTypes from "prop-types"
 import { Mail, Phone, Calendar, DollarSign, Clock, ArrowLeft, Camera, Edit, Trash2, AlertTriangle, CreditCard } from "lucide-react"
 import { PageLayout, Header, Section, Footer } from "../components/layout/PageLayout"
 import ProfilePhotoModal from "../components/ProfilePhotoModal"
+import { SecurityUtils } from "../utils/Security"
 // Info Item Component with updated styling
 const InfoItem = ({ icon, text, label }) => (
   <div className="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-zinc-800 group">
@@ -33,6 +34,7 @@ const UserProfile = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const navigate = useNavigate()
+
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -162,19 +164,10 @@ const UserProfile = () => {
 
   return (
     <PageLayout>
-      {/* Header */}
-      <Header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm py-4">
-        <div className="flex items-center gap-2">
-          <div className="bg-purple-600 w-8 h-8 rounded-md flex items-center justify-center">
-            <CreditCard className="w-5 h-5" />
-          </div>
-          <span className="font-bold text-xl">CliquePay</span>
-        </div>
-      </Header>
 
       <Section 
-        className="py-8 relative overflow-hidden"
-        style={{
+      className="py-8 relative overflow-hidden h-screen"
+      style={{
           background: "linear-gradient(to bottom, #0c0613 0%, #1a0b2e 50%, #130a1f 100%)"
         }}
       >
@@ -280,22 +273,6 @@ const UserProfile = () => {
         </div>
       </Section>
       
-      {/* Add Footer here */}
-      <Footer className="py-6 border-t border-zinc-800">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <div className="bg-purple-600/20 w-8 h-8 rounded-md flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-purple-400" />
-            </div>
-            <span className="text-sm text-gray-400">© 2025 CliquePay</span>
-          </div>
-          <div className="flex gap-6 text-gray-500">
-            <a href="#" className="text-sm hover:text-purple-400 transition-colors">Terms</a>
-            <a href="#" className="text-sm hover:text-purple-400 transition-colors">Privacy</a>
-            <a href="#" className="text-sm hover:text-purple-400 transition-colors">Help</a>
-          </div>
-        </div>
-      </Footer>
       
       {showDeleteModal && <DeleteConfirmationModal />}
       <ProfilePhotoModal
