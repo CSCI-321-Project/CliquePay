@@ -187,7 +187,7 @@ const UserProfile = () => {
         
         <div className="relative z-10 max-w-md mx-auto">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/dashboard')}
             className="text-gray-400 hover:text-white flex items-center mb-8"
           >
             <ArrowLeft className="w-5 h-5 mr-2" /> Back
@@ -256,7 +256,7 @@ const UserProfile = () => {
           {/* Action Buttons */}
           <div className="w-full max-w-md mt-6 flex gap-4">
             <button 
-              onClick={() => navigate('/edit-profile')}
+              onClick={() => navigate('/profile/edit')}
               className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition-colors shadow-lg"
             >
               <Edit className="w-5 h-5" />
