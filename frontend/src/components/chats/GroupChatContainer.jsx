@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
-import { SecurityUtils } from '../../utils/security';
+import { SecurityUtils } from '../../utils/Security.js';
 import PropTypes from "prop-types";
 
 const InviteMembersList = ({ groupId, onInviteSuccess }) => {

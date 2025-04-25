@@ -7,7 +7,7 @@ from cliquepay.aws_cognito import CognitoService
 from cliquepay.db_service import DatabaseService
 from .serializers import *
 from cliquepay.storage_service import CloudStorageService
-from api.serializers import SearchUserSerializer, GetDirectMessagesSerializer, GetGroupMessagesSerializer, InviteSearchListSerializer
+from api.serializers import SearchUserSerializer, GetDirectMessagesBetweenUsersSerializer, GetDirectMessagesSerializer, GetGroupMessagesSerializer, InviteSearchListSerializer
 import logging
 from django.db import models
 from datetime import datetime
@@ -202,6 +202,11 @@ def api_root(request, format=None):
                 'url':reverse('cancel_group_invite', request=request, format=format),
                 'method':'POST',
                 'description':'cancel group invite.'
+            },
+            'get-direct-messages-between-users':{
+                'url':reverse('get_direct_messages_between_users', request=request, format=format),
+                'method':'POST',
+                'description':'Get direct messages between the authenticated user and a specific user.'
             },
             'get-financial-summary':{
                 'url':reverse('get_financial_summary', request=request, format=format),
@@ -942,6 +947,8 @@ def get_direct_messages(request):
         decoded = cognito.get_user_id(serializer.validated_data['id_token'])
         if decoded['status'] == 'SUCCESS':
             db = DatabaseService()
+            print(f"Decoded token: {decoded}")
+            print(f"user_sub: {decoded['user_sub']}")
             result = db.get_direct_messages(decoded['user_sub'], serializer.validated_data.get('page'), serializer.validated_data.get('page_size')) 
             if result['status'] == 'SUCCESS':
                 return JsonResponse(result, status=status.HTTP_200_OK)
@@ -2107,6 +2114,42 @@ def remove_from_group(request):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(decoded, status=status.HTTP_401_UNAUTHORIZED)
     return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def get_direct_messages_between_users(request):
+    """
+    Get direct messages between the authenticated user and a specific user.
+    
+    Request Body:
+    {
+        "id_token": "your-id-token",
+        "recipient_id": "other-user-id",
+        "page" (optional): 1,
+        "page_size" (optional): 20
+    }
+    """
+    serializer = GetDirectMessagesBetweenUsersSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        decoded = cognito.get_user_id(serializer.validated_data['id_token'])
+        if decoded['status'] == 'SUCCESS':
+            db = DatabaseService()
+            result = db.get_direct_messages_between_users(
+                cognito_id=decoded['user_sub'],
+                recipient_id=serializer.validated_data['recipient_id'],
+                page=serializer.validated_data.get('page', 1),
+                page_size=serializer.validated_data.get('page_size', 20)
+            )
+            if result['status'] == 'SUCCESS':
+                return JsonResponse(result, status=status.HTTP_200_OK)
+            return JsonResponse(result, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(decoded, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return JsonResponse({
         'status': 'error',
         'message': 'Invalid input',
         'errors': serializer.errors
