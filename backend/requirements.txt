@@ -1,0 +1,33 @@
+# Django & REST Framework
+Django>=5.1.5
+djangorestframework>=3.14.0
+django-cors-headers>=4.7.0
+django-storages>=1.14.0
+django-eventstream>=4.5.1
+
+# AWS
+boto3>=1.26.0
+botocore>=1.29.0
+
+# Google Cloud Storage
+google-cloud-storage>=2.12.0
+
+# Authentication & Security
+PyJWT>=2.6.0
+python-dotenv>=1.0.0
+
+# Database
+mysqlclient>=2.1.1
+
+# Async Support
+asyncio>=3.4.3
+aioredis>=2.0.1
+redis>=5.0.0
+websockets>=11.0.3
+channels>=4.0.0
+daphne>=4.0.0
+
+# Misc
+uuid
+Pillow==10.2.0
+requests>=2.31.0

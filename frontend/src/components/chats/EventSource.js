@@ -23,7 +23,7 @@ class EventSourceService {
         return false;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       // Remove token from URL
       const url = `${API_URL}/events/user-${userId}/`;
       console.log(`Connecting to SSE at: ${url}`);
@@ -63,10 +63,19 @@ class EventSourceService {
         try {
           const data = JSON.parse(event.data);
           console.log('Parsed message data:', data);
+          
+          // Handle different message types
+          if (data.type === 'direct_message' || data.type === 'group_message') {
+            this._handleChatMessage(data);
+          } else if (data.type === 'notification') {
+            this._handleNotification(data);
+          }
+          
+          // Notify all message listeners
           this._notifyListeners('message', data);
-          handleSSEMessage(data);
         } catch (error) {
           console.error("Error parsing SSE message:", error);
+          this._notifyListeners('error', error);
         }
       });
 
@@ -125,19 +134,40 @@ class EventSourceService {
       this.listeners[event].forEach(callback => callback(data));
     }
   }
-}
 
-const handleSSEMessage = (data) => {
-  console.log('handleSSEMessage called with:', data);
-  
-  if (data.type === 'direct_message' || data.type === 'group_message') {
-    console.log('Processing new message from SSE:', data);
+  _handleChatMessage(data) {
+    const messageData = {
+      id: data.message.message_id,
+      content: data.message.content,
+      timestamp: data.message.timestamp,
+      // Use full_name or friend_name with fallbacks
+      sender: data.sender_name || data.full_name || data.friend_name || data.sender || "Unknown User",
+      senderId: data.sender_id,
+      isSentByMe: data.is_sent_by_me,
+      messageType: data.message.message_type,
+      fileUrl: data.message.file_url,
+      isRead: data.message.is_read
+    };
+
+    // Notify chat message listeners specifically
+    this._notifyListeners('chatMessage', messageData);
     
-    // Your existing code to handle the message...
-    
-    // Force re-render if needed
-    setMessages(prev => [...prev]);
+    // Update unread count if needed
+    if (!messageData.isRead && !messageData.isSentByMe) {
+      this._notifyListeners('unreadMessage', {
+        senderId: messageData.senderId,
+        messageId: messageData.id
+      });
+    }
   }
-};
+
+  _handleNotification(data) {
+    this._notifyListeners('notification', {
+      type: data.notification_type,
+      message: data.message,
+      timestamp: data.timestamp
+    });
+  }
+}
 
 export default new EventSourceService();

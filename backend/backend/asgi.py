@@ -12,12 +12,15 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
 from django.core.asgi import get_asgi_application
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 
 from cliquepay.middleware import TokenAuthMiddleware
 from cliquepay.message_broker import broker
+
+# Import Django's ASGI application
+django_asgi_app = get_asgi_application()
 
 # Improved SSE Consumer that uses message broker instead of polling
 class SSEConsumer:
@@ -38,6 +41,8 @@ class SSEConsumer:
                 (b'connection', b'keep-alive'),
                 (b'Access-Control-Allow-Origin', b'http://localhost:5173'),
                 (b'Access-Control-Allow-Credentials', b'true'),
+                (b'Access-Control-Allow-Headers', b'authorization,content-type'),
+                (b'Access-Control-Allow-Methods', b'GET,POST,PUT,DELETE,OPTIONS'),
             ],
         })
         
@@ -46,6 +51,7 @@ class SSEConsumer:
         user = self.scope['user']
         
         print(f"SSE connection established for channel: {channel}")
+        queue = None
         
         try:
             # Initial send of connection established
@@ -79,12 +85,21 @@ class SSEConsumer:
                     )
                 
         except Exception as e:
-            print(f"SSE connection closed: {e}")
+            print(f"SSE connection error: {e}")
+            await self.send_event(
+                event="error",
+                data={"message": "Connection error occurred"}
+            )
         finally:
             # Clean up subscription when done
-            broker.unsubscribe(channel, queue)
             self.active = False
-            print(f"Unsubscribed from channel: {channel}")
+            if queue:
+                try:
+                    if hasattr(broker, 'unsubscribe'):
+                        await broker.unsubscribe(channel, queue)
+                    print(f"Unsubscribed from channel: {channel}")
+                except Exception as cleanup_error:
+                    print(f"Error while unsubscribing: {cleanup_error}")
     
     async def send_event(self, event, data):
         """Helper to send an SSE event"""
@@ -110,19 +125,16 @@ class SSEConsumer:
 def sse_consumer(scope, receive, send):
     return SSEConsumer(scope, receive, send)()
 
-# Create ASGI application
+# Define the SSE URL pattern
+sse_patterns = [
+    re_path(r'^events/(?P<channel>[\w-]+)/$', TokenAuthMiddleware(AuthMiddlewareStack(sse_consumer))),
+]
+
+# Create ASGI application with HTTP handler
 application = ProtocolTypeRouter({
-    'http': URLRouter([
-        # Custom SSE endpoint
-        re_path(
-            r'^events/(?P<channel>[\w-]+)/$', 
-            TokenAuthMiddleware(
-                AuthMiddlewareStack(
-                    sse_consumer
-                )
-            )
-        ),
-        # All other HTTP requests go to Django
-        path('', get_asgi_application()),
+    # Use a simpler pattern that first checks for SSE URLs, then passes to Django
+    "http": URLRouter(sse_patterns + [
+        # For all other paths, use Django's ASGI application
+        re_path(r"", django_asgi_app),
     ]),
 })

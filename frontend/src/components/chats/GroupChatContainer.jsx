@@ -10,6 +10,7 @@ import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import { SecurityUtils } from '../../utils/Security.js';
 import PropTypes from "prop-types";
+import EventSourceService from './EventSource'; // Add this import at the top
 
 const InviteMembersList = ({ groupId, onInviteSuccess }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -316,9 +317,18 @@ const MessageBubble = ({ message, isOwn }) => {
           <span className="text-xs opacity-70">{formattedTime}</span>
           {isOwn && (
             <span className="ml-1">
-              {message.is_read ? 
-                <CheckCheck className="h-3 w-3 text-blue-300" /> : 
-                <Check className="h-3 w-3" />}
+              {message.status === "SENDING" && "●"}
+              {message.status === "ERROR" && "⚠️"}
+              {message.status === "SENT" && (
+                message.is_read ? 
+                  <CheckCheck className="h-3 w-3 text-blue-300" /> : 
+                  <Check className="h-3 w-3" />
+              )}
+              {!message.status && (
+                message.is_read ? 
+                  <CheckCheck className="h-3 w-3 text-blue-300" /> : 
+                  <Check className="h-3 w-3" />
+              )}
             </span>
           )}
         </div>
@@ -334,7 +344,8 @@ MessageBubble.propTypes = {
     sender_id: PropTypes.string.isRequired,
     sender_name: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
-    is_read: PropTypes.bool
+    is_read: PropTypes.bool,
+    status: PropTypes.string 
   }).isRequired,
   isOwn: PropTypes.bool.isRequired
 };
@@ -503,10 +514,32 @@ const GroupChatContainer = ({ groupId, onBack }) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
     
+    // Create a temporary ID for the message
+    const tempId = `temp-${Date.now()}`;
+    
+    // Add optimistic message with SENDING status
+    const tempMessage = {
+      message_id: tempId,
+      content: newMessage,
+      sender_id: userId.current,
+      sender_name: "You", // Will be replaced on next fetch
+      created_at: new Date().toISOString(),
+      is_read: false,
+      status: "SENDING"
+    };
+    
+    setMessages(prevMessages => [...prevMessages, tempMessage]);
+    setNewMessage(""); // Clear input
+    scrollToBottom();
+    
     try {
       const token = await SecurityUtils.getCookie("idToken");
       if (!token) {
         setError("Authentication required");
+        // Update message status to ERROR
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+        ));
         return;
       }
       
@@ -526,30 +559,35 @@ const GroupChatContainer = ({ groupId, onBack }) => {
       const data = await response.json();
       
       if (data.status === "SUCCESS") {
-        // Add new message temporarily with optimistic UI update
-        const tempMessage = {
-          message_id: data.message_id || `temp-${Date.now()}`,
-          content: newMessage,
-          sender_id: userId.current,
-          sender_name: "You", // Will be replaced on next fetch
-          created_at: new Date().toISOString(),
-          is_read: false
-        };
+        // Update the temporary message with the real ID and SENT status
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? 
+          { 
+            ...msg, 
+            message_id: data.message_id || msg.message_id,
+            status: "SENT"
+          } : msg
+        ));
         
-        setMessages(prevMessages => [...prevMessages, tempMessage]);
-        setNewMessage(""); // Clear input
-        scrollToBottom();
-        
-        // Refresh messages after a short delay to get the real message
+        // No need to refresh messages immediately as we've updated the status
+        // You can still fetch after a longer delay if needed
         setTimeout(() => {
           fetchMessages(1);
-        }, 500);
+        }, 2000);
       } else {
         setError(data.message || "Failed to send message");
+        // Update message status to ERROR
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+        ));
       }
     } catch (error) {
       console.error("Error sending message:", error);
       setError("Failed to send message. Please try again.");
+      // Update message status to ERROR
+      setMessages(prev => prev.map(msg => 
+        msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+      ));
     }
   };
 
@@ -663,6 +701,58 @@ const GroupChatContainer = ({ groupId, onBack }) => {
   };
 
   // When toggling group info view, pass isAdmin correctly
+  useEffect(() => {
+    if (!userId.current) return;
+
+    // Connect to SSE for real-time updates
+    const handleSSEMessage = (data) => {
+      console.log("SSE group message received:", data);
+      
+      if (data.type === 'group_message' && data.group_id === groupId) {
+        const newMessage = data.message;
+        
+        // Add message if it doesn't already exist in our state
+        setMessages(prev => {
+          // Check if we already have this message
+          const messageExists = prev.some(msg => 
+            msg.message_id === newMessage.message_id
+          );
+          
+          if (messageExists) {
+            return prev;
+          }
+          
+          console.log("Adding new group message to state:", newMessage);
+          return [...prev, {
+            message_id: newMessage.message_id,
+            content: newMessage.content,
+            sender_id: data.sender_id,
+            // Use sender instead of sender_name - this fixes the issue
+            sender_name: data.sender || "Unknown User",
+            created_at: newMessage.timestamp || new Date().toISOString(),
+            status: data.is_sent_by_me ? "SENT" : undefined
+          }];
+        });
+
+        // Scroll to bottom for new messages
+        scrollToBottom();
+      }
+    };
+    
+    // Connect to SSE
+    const connectSSE = async () => {
+      await EventSourceService.connect(userId.current);
+      EventSourceService.addEventListener('message', handleSSEMessage);
+    };
+    
+    connectSSE();
+    
+    // Clean up on unmount
+    return () => {
+      EventSourceService.removeEventListener('message', handleSSEMessage);
+    };
+  }, [userId.current, groupId]);
+
   return (
     <div className="flex flex-col h-[65vh] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800">
       {!showGroupInfo ? (

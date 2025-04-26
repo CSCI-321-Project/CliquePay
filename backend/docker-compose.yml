@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    command: >
+      bash -c "python manage.py migrate &&
+               daphne -b 0.0.0.0 -p 8000 backend.asgi:application"
+    volumes:
+      - .:/app
+      - ./google-credentials.json:/app/google-credentials.json
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env.docker
+  
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+  
+  db:
+    image: mysql:8.0
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 1502
+      MYSQL_DATABASE: cliquepay
+    ports:
+      - "3307:3306"
+
+volumes:
+  mysql_data:

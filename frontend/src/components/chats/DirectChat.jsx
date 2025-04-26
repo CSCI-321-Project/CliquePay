@@ -67,7 +67,7 @@ const MessageBubble = ({ message, isOwn }) => {
           <span>{formatMessageTime(displayTimestamp)}</span>
           
           {isOwn && (
-            <span className="ml-2">
+            <span class="ml-2">
               {status === "SENDING" && "●"}
               {status === "ERROR" && "⚠️"}
               {status === "SENT" && "✓"}
@@ -172,6 +172,19 @@ export default function DirectChat({ recipientInfo, onBack }) {
     fetchMessages();
   }, [recipientInfo?.user_id, currentUserId, API_URL]);
   
+  // Add this to the top of DirectChat component after the useState declarations
+  useEffect(() => {
+    // Safety timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        console.log("Loading timeout triggered - forcing loading state to complete");
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(loadingTimeout);
+  }, [isLoading]);
+  
   // Fetch messages function
   const fetchMessages = async () => {
     setIsLoading(true);
@@ -195,6 +208,15 @@ export default function DirectChat({ recipientInfo, onBack }) {
           page_size: 20
         }),
       });
+      
+      // Handle 400 Bad Request - this is probably when there are no messages yet
+      if (response.status === 400) {
+        // Just set empty messages array and stop loading
+        setMessages([]);
+        setHasMoreMessages(false);
+        setIsLoading(false);
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
@@ -425,20 +447,40 @@ export default function DirectChat({ recipientInfo, onBack }) {
   }, [currentUserId]);
   
   const handleSSEMessage = (data) => {
-    if (data.type === 'message') {
+    console.log("SSE message received:", data);
+    
+    if (data.type === 'direct_message') {
       const newMessage = data.message;
       
       // Only process messages related to this conversation
       if (
-        (newMessage.sender_id === recipientInfo.user_id && newMessage.recipient_id === currentUserId) ||
-        (newMessage.sender_id === currentUserId && newMessage.recipient_id === recipientInfo.user_id)
+        (data.sender_id === recipientInfo.user_id) || 
+        (data.is_sent_by_me && data.sender_id === currentUserId)
       ) {
         // Check if we already have this message (avoid duplicates)
-        const messageExists = messages.some(msg => msg.id === newMessage.id);
-        
-        if (!messageExists) {
-          setMessages(prev => [...prev, newMessage]);
-        }
+        setMessages(prev => {
+          // Check if message already exists by comparing message_id
+          const messageExists = prev.some(msg => 
+            msg.id === newMessage.message_id || 
+            msg.message_id === newMessage.message_id
+          );
+          
+          if (messageExists) {
+            console.log("Duplicate message detected, not adding");
+            return prev;
+          }
+          
+          console.log("Adding new message to state");
+          return [...prev, {
+            id: newMessage.message_id,
+            content: newMessage.content,
+            timestamp: newMessage.timestamp,
+            sender_id: data.sender_id,
+            is_sent_by_me: data.is_sent_by_me,
+            message_type: newMessage.message_type,
+            status: "SENT"
+          }];
+        });
       }
     }
   };
@@ -509,7 +551,7 @@ export default function DirectChat({ recipientInfo, onBack }) {
             </div>
             <p className="text-gray-300 font-medium">No messages yet</p>
             <p className="text-sm text-gray-400 mt-1 max-w-xs">
-              Send a message to start your conversation with {recipientInfo.full_name}
+              Send a message to start your conversation with {recipientInfo.full_name || "this user"}
             </p>
           </div>
         ) : (

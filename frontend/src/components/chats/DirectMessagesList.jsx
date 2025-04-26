@@ -242,79 +242,32 @@ export default function DirectMessagesList({ directChats = [], onOpenChat }) {
   };
   
   const handleSelectFriend = (friendInfo) => {
-    onOpenChat(friendInfo);
+    // Create a properly formatted chat object with consistent naming
+    const chatObject = {
+      id: friendInfo.user_id,
+      user_id: friendInfo.user_id,
+      name: friendInfo.friend_name || friendInfo.full_name,
+      full_name: friendInfo.friend_name || friendInfo.full_name,
+      avatarSrc: friendInfo.profile_photo,
+      profile_photo: friendInfo.profile_photo,
+      email: friendInfo.email,
+      // Add default values for required fields
+      lastMessage: "No messages yet",
+      lastMessageTime: "",
+      unreadCount: 0
+    };
+    
+    // Pass the properly formatted object to the parent component
+    onOpenChat(chatObject);
     setIsModalOpen(false);
   };
 
   // Ensure directChats is always an array
   const chats = Array.isArray(directChats) ? directChats : [];
   
-  // Mock data for visual display purposes
-  const demoChats = [
-    {
-      id: 1,
-      name: "Alice Johnson",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Thanks for paying!",
-      lastMessageTime: "11:45 AM",
-      unreadCount: 1,
-      online: true,
-      isTyping: false
-    },
-    {
-      id: 2,
-      name: "Bob Smith",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "I'll send you my part tomorrow",
-      lastMessageTime: "Yesterday",
-      unreadCount: 0,
-      online: true,
-      isTyping: true
-    },
-    {
-      id: 3,
-      name: "Charlie Brown",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Did you see the bill?",
-      lastMessageTime: "Monday",
-      unreadCount: 0,
-      online: false,
-      isTyping: false
-    },
-    {
-      id: 4,
-      name: "Dana Davis",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Let's split the rent 50/50",
-      lastMessageTime: "Sunday",
-      unreadCount: 0,
-      online: false,
-      isTyping: false
-    },
-    {
-      id: 5,
-      name: "Elijah Wilson",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Movie tonight?",
-      lastMessageTime: "Mar 22",
-      unreadCount: 0,
-      online: false,
-      isTyping: false
-    },
-    {
-      id: 6,
-      name: "Fiona Green",
-      avatarSrc: "/placeholder.svg?height=40&width=40",
-      lastMessage: "I paid for dinner",
-      lastMessageTime: "Mar 20",
-      unreadCount: 2,
-      online: true,
-      isTyping: false
-    },
-  ];
 
   // Use the actual props in a real implementation
-  const displayChats = chats.length > 0 ? chats : demoChats;
+  const displayChats = chats;
 
   return (
     <div>
@@ -343,9 +296,9 @@ export default function DirectMessagesList({ directChats = [], onOpenChat }) {
         ) : (
           <div className="text-center py-8 bg-zinc-800 rounded-lg">
             <div className="flex justify-center mb-3">
-              <MessageCircle className="h-10 w-10 text-purple-400" />
+              <Search className="h-10 w-10 text-purple-400" />
             </div>
-            <p className="text-gray-400 mb-3">No conversations yet</p>
+            <p className="text-gray-400 mb-3">Search friends to get started</p>
             <Button 
               className="bg-purple-600 hover:bg-purple-700"
               onClick={handleOpenModal}

@@ -6,6 +6,7 @@ import asyncio
 import json
 import redis.asyncio as redis
 from datetime import datetime
+import os
 
 class RedisMessageBroker:
     """Redis-based broker to handle message dispatch across processes"""
@@ -20,9 +21,22 @@ class RedisMessageBroker:
     async def initialize(self):
         """Initialize Redis connection (call this once at startup)"""
         if not hasattr(self, 'redis') or self.redis is None:
-            self.redis = redis.Redis(host='localhost', port=6379, decode_responses=True)
-            self.initialized = True
-            print("Redis message broker initialized")
+            # Get Redis host from environment or use Docker service name
+            redis_host = os.getenv('REDIS_HOST', 'redis')
+            redis_port = int(os.getenv('REDIS_PORT', 6379))
+            
+            try:
+                self.redis = redis.Redis(
+                    host=redis_host, 
+                    port=redis_port, 
+                    decode_responses=True
+                )
+                self.initialized = True
+                print(f"Redis message broker initialized with host: {redis_host}:{redis_port}")
+            except Exception as e:
+                print(f"Redis connection error: {e}")
+                # Fallback to in-memory queue system
+                self.initialized = False
     
     async def subscribe(self, channel, queue):
         """Subscribe a queue to a channel"""
@@ -32,6 +46,17 @@ class RedisMessageBroker:
         asyncio.create_task(self._listener(channel, queue))
         print(f"BROKER: Subscribed to Redis channel '{channel}'")
         return queue
+    
+    async def unsubscribe(self, channel, queue):
+        """Unsubscribe a queue from a channel"""
+        print(f"BROKER: Unsubscribing from Redis channel '{channel}'")
+        try:
+            # We don't need to do anything with Redis here since the listener task
+            # will automatically terminate when the queue is garbage collected
+            # Just print a log message for debugging
+            print(f"Queue unsubscribed from channel {channel}")
+        except Exception as e:
+            print(f"Error unsubscribing from channel {channel}: {e}")
     
     async def _listener(self, channel, queue):
         """Background task that listens for Redis messages and forwards to queue"""

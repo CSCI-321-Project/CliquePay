@@ -7,7 +7,8 @@ node_modules
 # dependencies
 /frontend/node_modules
 /frontend/.pnp
-
+/backend/google-credentials.json
+backend/.devcontainer
 # testing
 /frontend/coverage
 
@@ -53,3 +54,5 @@ node_modules
 
 .DS_Store
 Thumbs.db**/__pycache__/
+
+.env.docker
