@@ -1,6 +1,7 @@
 import uuid
 from .models import *
 from django.db.models import Exists, OuterRef, Subquery, Count, F 
+from django.utils import timezone
 
 
 class DatabaseService:
@@ -96,6 +97,7 @@ class DatabaseService:
                 if(friendship.status == 'BLOCKED' or friendship.status == 'blocked'):
                     friends_list.append({
                         'friend_id': "null",
+                        'username': friend.name,
                         'friend_name': friend.full_name,
                         'email': "null",
                         'profile_photo': friend.avatar_url,
@@ -106,6 +108,7 @@ class DatabaseService:
                 else:
                     friends_list.append({   
                         'friend_id': friend.id,
+                        'username': friend.name,
                         'friend_name': friend.full_name,
                         'email': friend.email,
                         'profile_photo': friend.avatar_url,
@@ -461,70 +464,107 @@ class DatabaseService:
     @staticmethod
     def get_direct_messages(cognito_id, page=1, page_size=50):
         '''
-        Get user DMs, new and old, with pagination.
+        Get user's conversations, returning only the last message for each conversation partner.
         
         Args:
             cognito_id (str): Cognito user ID
             page (int): Page number for pagination (default 1)
-            page_size (int): Number of messages per page (default 50)
+            page_size (int): Number of conversations per page (default 50)
         Returns:
-            dict: Status of the get operation with paginated messages
+            dict: Status of the get operation with conversation summaries
         '''
         try:
             user = User.objects.get(cognito_id=cognito_id)
             
-            # Get total messages for pagination
-            total_messages = DirectMessage.objects.filter(
+            # Check if user has any messages first
+            if not DirectMessage.objects.filter(
                 models.Q(sender=user) | models.Q(recipient=user)
-            ).count()
+            ).exists():
+                # Return empty conversations list if no messages
+                return {
+                    'status': 'SUCCESS',
+                    'conversations': [],
+                    'pagination': {
+                        'current_page': page,
+                        'total_pages': 0,
+                        'page_size': page_size,
+                        'total_conversations': 0,
+                        'has_next': False,
+                        'has_previous': False
+                    }
+                }
             
-            total_pages = (total_messages + page_size - 1) // page_size
+            # Get all unique users the current user has exchanged messages with
+            conversation_partners = User.objects.filter(
+                models.Q(sent_direct_messages__recipient=user) | 
+                models.Q(received_messages__sender=user)
+            ).distinct()
             
-            # Apply proper pagination with ordering
+            # Apply pagination to conversation partners
+            total_conversations = conversation_partners.count()
+            total_pages = (total_conversations + page_size - 1) // page_size if total_conversations > 0 else 0
             start_idx = (page - 1) * page_size
             
-            # Order messages by newest first (most chat interfaces show newest messages first)
-            messages = DirectMessage.objects.filter(
-                models.Q(sender=user) | models.Q(recipient=user)
-            ).select_related('sender', 'recipient').order_by('-created_at')[start_idx:start_idx+page_size]
-
-            messages_list = []
-
-            for message in messages:
-                messages_list.append({
-                    'message_id': message.id,
-                    'sender_id': message.sender.id,
-                    'sender_name': message.sender.full_name,
-                    'recipient_id': message.recipient.id,
-                    'recipient_name': message.recipient.full_name,
-                    'content': message.content,
-                    'message_type': message.message_type,
-                    'file_url': message.file_url,
-                    'created_at': message.created_at,
-                    'is_read': message.is_read,
-                    'read_at': message.read_at
-                })
+            # Get paginated conversation partners
+            paginated_partners = conversation_partners[start_idx:start_idx+page_size]
+            
+            conversations = []
+            
+            # For each partner, get their details and last message
+            for partner in paginated_partners:
+                # Get the last message between users (most recent first)
+                last_message = DirectMessage.objects.filter(
+                    (models.Q(sender=user) & models.Q(recipient=partner)) |
+                    (models.Q(sender=partner) & models.Q(recipient=user))
+                ).order_by('-created_at').first()
                 
+                if not last_message:
+                    continue  # Skip if no messages (shouldn't happen with our query, but just to be safe)
+                
+                # Create conversation summary
+                conversation = {
+                    'user_id': partner.id,
+                    'username': partner.name,
+                    'full_name': partner.full_name,
+                    'profile_photo': partner.avatar_url,
+                    'email': partner.email,
+                    'conversation_last_msg': {
+                        'message_id': last_message.id,
+                        'content': last_message.content,
+                        'message_type': last_message.message_type,
+                        'created_at': last_message.created_at,
+                        'is_read': last_message.is_read,
+                        'sender_id': last_message.sender.id,
+                        'is_sent_by_me': last_message.sender.id == user.id
+                    }
+                }
+                conversations.append(conversation)
+            
+            # Sort conversations by the timestamp of the last message (newest first)
+            conversations.sort(key=lambda x: x['conversation_last_msg']['created_at'], reverse=True)
+            
             pagination = {
                 'current_page': page,
                 'total_pages': total_pages,
                 'page_size': page_size,
-                'total_messages': total_messages,
+                'total_conversations': total_conversations,
                 'has_next': page < total_pages,
                 'has_previous': page > 1
             }
 
             return {
                 'status': 'SUCCESS',
-                'messages': messages_list,
+                'conversations': conversations,
                 'pagination': pagination
             }
         except User.DoesNotExist:
+            print(f"User not found with cognito_id: {cognito_id}")
             return {
                 'status': 'ERROR',
                 'message': 'User not found'
             }
         except Exception as e:
+            print(f"Exception in get_direct_messages: {type(e).__name__}: {str(e)}")
             return {
                 'status': 'ERROR',
                 'message': str(e)
@@ -1510,7 +1550,7 @@ class DatabaseService:
             }
     
     @staticmethod
-    def edit_group_details(user_sub, group_id, group_name=None, group_description=None):
+    def edit_group(user_sub, group_id, group_name=None, group_description=None):
         """
         Edit the group details.
 
@@ -1615,3 +1655,128 @@ class DatabaseService:
                 'status': 'ERROR',
                 'message': str(e)
             }
+
+    @staticmethod
+    def get_direct_messages_between_users(cognito_id, recipient_id, page=1, page_size=20):
+        '''
+        Get direct messages between two specific users with pagination.
+        
+        Args:
+            cognito_id (str): Cognito user ID of the requester
+            recipient_id (str): ID of the other user in the conversation
+            page (int): Page number for pagination (default 1)
+            page_size (int): Number of messages per page (default 20)
+        Returns:
+            dict: Status of the get operation with paginated messages
+        '''
+        try:
+            user = User.objects.get(cognito_id=cognito_id)
+            recipient = User.objects.get(id=recipient_id)
+            
+            # Get total messages for pagination
+            total_messages = DirectMessage.objects.filter(
+                (models.Q(sender=user) & models.Q(recipient=recipient)) | 
+                (models.Q(sender=recipient) & models.Q(recipient=user))
+            ).count()
+            
+            total_pages = (total_messages + page_size - 1) // page_size if total_messages > 0 else 0
+            
+            # Apply proper pagination with ordering
+            start_idx = (page - 1) * page_size
+            
+            # Order messages by timestamp (oldest first for chat rendering)
+            messages = DirectMessage.objects.filter(
+                (models.Q(sender=user) & models.Q(recipient=recipient)) | 
+                (models.Q(sender=recipient) & models.Q(recipient=user))
+            ).select_related('sender', 'recipient').order_by('created_at')[start_idx:start_idx+page_size]
+
+            messages_list = []
+
+            for message in messages:
+                messages_list.append({
+                    'id': message.id,
+                    'sender_id': message.sender.id,
+                    'sender_name': message.sender.full_name,
+                    'sender_avatar': message.sender.avatar_url,
+                    'recipient_id': message.recipient.id,
+                    'recipient_name': message.recipient.full_name,
+                    'content': message.content,
+                    'message_type': message.message_type,
+                    'file_url': message.file_url,
+                    'timestamp': message.created_at,
+                    'is_read': message.is_read,
+                    'read_at': message.read_at,
+                    'status': "READ" if message.is_read else "DELIVERED"
+                })
+                
+                # Mark as read if recipient is viewing
+                if message.recipient == user and not message.is_read:
+                    message.is_read = True
+                    message.read_at = timezone.now()
+                    message.save(update_fields=['is_read', 'read_at'])
+                    
+            pagination = {
+                'current_page': page,
+                'total_pages': total_pages,
+                'page_size': page_size,
+                'total_messages': total_messages,
+                'has_more': page < total_pages
+            }
+
+            return {
+                'status': 'SUCCESS',
+                'messages': messages_list,
+                'pagination': pagination
+            }
+        except User.DoesNotExist:
+            return {
+                'status': 'ERROR',
+                'message': 'User not found'
+            }
+        except Exception as e:
+            return {
+                'status': 'ERROR',
+                'message': str(e)
+            }
+
+    @staticmethod
+    def delete_user_account(cognito_id):
+        """
+        Delete a user account and all associated data from the database
+        
+        Args:
+            cognito_id (str): Cognito user ID
+            
+        Returns:
+            dict: Status of the deletion operation
+        """
+        try:
+            user = User.objects.get(cognito_id=cognito_id)
+            
+            # Store some info before deletion for the return value
+            user_info = {
+                'id': user.id,
+                'username': user.name,
+                'email': user.email
+            }
+            
+            # Delete the user - this will cascade to related records if
+            # on_delete=CASCADE is set in the model relationships
+            user.delete()
+            
+            return {
+                'status': 'SUCCESS',
+                'message': 'User account deleted successfully',
+                'deleted_user': user_info
+            }
+        except User.DoesNotExist:
+            return {
+                'status': 'ERROR',
+                'message': f'User not found with cognito_id: {cognito_id}'
+            }
+        except Exception as e:
+            return {
+                'status': 'ERROR',
+                'message': f'Error deleting user: {str(e)}'
+            }
+

@@ -188,8 +188,6 @@ class SendDirectMessageSerializer(serializers.Serializer):
     )
     file_url = serializers.URLField(required=False)
 
-
-
 class GroupCreateSerializer(serializers.ModelSerializer):
     members = serializers.ListField(
         child=serializers.CharField(),
@@ -441,3 +439,24 @@ class RemoveFromGroupSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
     group_id = serializers.CharField(required=True)
     user_id = serializers.CharField(required=True)
+
+class GetDirectMessagesBetweenUsersSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)
+    recipient_id = serializers.CharField(required=True)
+    page = serializers.IntegerField(required=False, default=1)
+    page_size = serializers.IntegerField(required=False, default=20)
+
+class DeleteUserProfileSerializer(serializers.Serializer):
+    """
+    Serializer for the delete user profile endpoint
+    """
+    access_token = serializers.CharField(required=True)
+    confirmation = serializers.CharField(required=True)
+
+    def validate_confirmation(self, value):
+        """
+        Check that confirmation is exactly 'DELETE'
+        """
+        if value != 'DELETE':
+            raise serializers.ValidationError("Confirmation must be exactly 'DELETE'")
+        return value

@@ -8,8 +8,9 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
-import { SecurityUtils } from '../../utils/security';
+import { SecurityUtils } from '../../utils/Security.js';
 import PropTypes from "prop-types";
+import EventSourceService from './EventSource'; // Add this import at the top
 
 const InviteMembersList = ({ groupId, onInviteSuccess }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -316,9 +317,18 @@ const MessageBubble = ({ message, isOwn }) => {
           <span className="text-xs opacity-70">{formattedTime}</span>
           {isOwn && (
             <span className="ml-1">
-              {message.is_read ? 
-                <CheckCheck className="h-3 w-3 text-blue-300" /> : 
-                <Check className="h-3 w-3" />}
+              {message.status === "SENDING" && "●"}
+              {message.status === "ERROR" && "⚠️"}
+              {message.status === "SENT" && (
+                message.is_read ? 
+                  <CheckCheck className="h-3 w-3 text-blue-300" /> : 
+                  <Check className="h-3 w-3" />
+              )}
+              {!message.status && (
+                message.is_read ? 
+                  <CheckCheck className="h-3 w-3 text-blue-300" /> : 
+                  <Check className="h-3 w-3" />
+              )}
             </span>
           )}
         </div>
@@ -334,7 +344,8 @@ MessageBubble.propTypes = {
     sender_id: PropTypes.string.isRequired,
     sender_name: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
-    is_read: PropTypes.bool
+    is_read: PropTypes.bool,
+    status: PropTypes.string 
   }).isRequired,
   isOwn: PropTypes.bool.isRequired
 };
@@ -503,10 +514,32 @@ const GroupChatContainer = ({ groupId, onBack }) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
     
+    // Create a temporary ID for the message
+    const tempId = `temp-${Date.now()}`;
+    
+    // Add optimistic message with SENDING status
+    const tempMessage = {
+      message_id: tempId,
+      content: newMessage,
+      sender_id: userId.current,
+      sender_name: "You", // Will be replaced on next fetch
+      created_at: new Date().toISOString(),
+      is_read: false,
+      status: "SENDING"
+    };
+    
+    setMessages(prevMessages => [...prevMessages, tempMessage]);
+    setNewMessage(""); // Clear input
+    scrollToBottom();
+    
     try {
       const token = await SecurityUtils.getCookie("idToken");
       if (!token) {
         setError("Authentication required");
+        // Update message status to ERROR
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+        ));
         return;
       }
       
@@ -526,30 +559,35 @@ const GroupChatContainer = ({ groupId, onBack }) => {
       const data = await response.json();
       
       if (data.status === "SUCCESS") {
-        // Add new message temporarily with optimistic UI update
-        const tempMessage = {
-          message_id: data.message_id || `temp-${Date.now()}`,
-          content: newMessage,
-          sender_id: userId.current,
-          sender_name: "You", // Will be replaced on next fetch
-          created_at: new Date().toISOString(),
-          is_read: false
-        };
+        // Update the temporary message with the real ID and SENT status
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? 
+          { 
+            ...msg, 
+            message_id: data.message_id || msg.message_id,
+            status: "SENT"
+          } : msg
+        ));
         
-        setMessages(prevMessages => [...prevMessages, tempMessage]);
-        setNewMessage(""); // Clear input
-        scrollToBottom();
-        
-        // Refresh messages after a short delay to get the real message
+        // No need to refresh messages immediately as we've updated the status
+        // You can still fetch after a longer delay if needed
         setTimeout(() => {
           fetchMessages(1);
-        }, 500);
+        }, 2000);
       } else {
         setError(data.message || "Failed to send message");
+        // Update message status to ERROR
+        setMessages(prev => prev.map(msg => 
+          msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+        ));
       }
     } catch (error) {
       console.error("Error sending message:", error);
       setError("Failed to send message. Please try again.");
+      // Update message status to ERROR
+      setMessages(prev => prev.map(msg => 
+        msg.message_id === tempId ? { ...msg, status: "ERROR" } : msg
+      ));
     }
   };
 
@@ -591,6 +629,19 @@ const GroupChatContainer = ({ groupId, onBack }) => {
       setInvitedUsers(prevInvites => 
         prevInvites.filter(invite => invite.invite_id !== updatedInfo.canceledInviteId)
       );
+    }
+    
+    // Handle member removal - NEW CODE
+    if (updatedInfo.removedMemberId) {
+      setGroupMembers(prevMembers => 
+        prevMembers.filter(member => member.user_id !== updatedInfo.removedMemberId)
+      );
+      
+      // Also update the group size if available
+      setGroupInfo(prevInfo => ({
+        ...prevInfo,
+        group_size: (prevInfo.group_size || 0) - 1
+      }));
     }
     
     // If the update is just to refresh data, fetch the group info
@@ -650,6 +701,58 @@ const GroupChatContainer = ({ groupId, onBack }) => {
   };
 
   // When toggling group info view, pass isAdmin correctly
+  useEffect(() => {
+    if (!userId.current) return;
+
+    // Connect to SSE for real-time updates
+    const handleSSEMessage = (data) => {
+      console.log("SSE group message received:", data);
+      
+      if (data.type === 'group_message' && data.group_id === groupId) {
+        const newMessage = data.message;
+        
+        // Add message if it doesn't already exist in our state
+        setMessages(prev => {
+          // Check if we already have this message
+          const messageExists = prev.some(msg => 
+            msg.message_id === newMessage.message_id
+          );
+          
+          if (messageExists) {
+            return prev;
+          }
+          
+          console.log("Adding new group message to state:", newMessage);
+          return [...prev, {
+            message_id: newMessage.message_id,
+            content: newMessage.content,
+            sender_id: data.sender_id,
+            // Use sender instead of sender_name - this fixes the issue
+            sender_name: data.sender || "Unknown User",
+            created_at: newMessage.timestamp || new Date().toISOString(),
+            status: data.is_sent_by_me ? "SENT" : undefined
+          }];
+        });
+
+        // Scroll to bottom for new messages
+        scrollToBottom();
+      }
+    };
+    
+    // Connect to SSE
+    const connectSSE = async () => {
+      await EventSourceService.connect(userId.current);
+      EventSourceService.addEventListener('message', handleSSEMessage);
+    };
+    
+    connectSSE();
+    
+    // Clean up on unmount
+    return () => {
+      EventSourceService.removeEventListener('message', handleSSEMessage);
+    };
+  }, [userId.current, groupId]);
+
   return (
     <div className="flex flex-col h-[65vh] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800">
       {!showGroupInfo ? (
@@ -685,18 +788,7 @@ const GroupChatContainer = ({ groupId, onBack }) => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-1">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-700"
-                  onClick={() => setShowInviteMembers(prev => !prev)}
-                >
-                  <UserPlus className="h-5 w-5" />
-                </Button>
-                <InviteMembersDropdown />
-              </div>
+            <div className="flex items-center space-x-1"> 
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -807,6 +899,7 @@ const GroupChatContainer = ({ groupId, onBack }) => {
           isAdmin={isAdmin}
           onBack={handleGroupInfoBack}
           onUpdateGroup={handleUpdateGroup}
+          userId={userId.current}  // Pass userId.current as a prop
         />
       )}
     </div>
@@ -818,7 +911,7 @@ GroupChatContainer.propTypes = {
   onBack: PropTypes.func.isRequired
 };
 
-const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin, onBack, onUpdateGroup }) => {
+const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin, onBack, onUpdateGroup, userId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
@@ -832,9 +925,71 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
+  const [showRemoveMemberConfirmation, setShowRemoveMemberConfirmation] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState(null);
+  
+  const RemoveMemberConfirmationModal = () => {
+    if (!showRemoveMemberConfirmation || !memberToRemove) return null;
+  
+    return (
+      <div 
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div 
+          className="bg-zinc-800 rounded-lg p-6 max-w-md w-full mx-4 border border-zinc-700"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-xl font-semibold mb-2">Remove Member</h3>
+          <p className="text-zinc-300 mb-4">
+            Are you sure you want to remove <strong>{memberToRemove.full_name}</strong> from this group?
+          </p>
+          
+          {removeError && (
+            <div className="bg-red-900/20 border border-red-500 rounded-md p-3 mb-4">
+              <p className="text-red-300 text-sm">{removeError}</p>
+            </div>
+          )}
+  
+          <div className="flex justify-end space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRemoveMemberConfirmation(false);
+                setMemberToRemove(null);
+                setRemoveError(null);
+              }}
+              disabled={isRemoving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleRemoveMember}
+              disabled={isRemoving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isRemoving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                "Remove Member"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
   // Set initial values when editing
   useEffect(() => {
     if (isEditing && groupInfo) {
@@ -863,12 +1018,24 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
       return;
     }
     
+    // Add loading state
+    setIsSaving(true);
+    setError(null);
+    
     try {
       const token = await SecurityUtils.getCookie("idToken");
       if (!token) {
         setError("Authentication required");
+        setIsSaving(false);
         return;
       }
+      
+      // Log the request for debugging
+      console.log("Sending edit group request:", {
+        group_id: groupId, 
+        group_name: editedName,
+        group_description: editedDescription
+      });
       
       const response = await fetch(`${API_URL}/edit-group/`, {
         method: "POST",
@@ -884,18 +1051,28 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
       });
       
       const data = await response.json();
+      console.log("Edit group response:", data);
+      
       if (data.status === "SUCCESS") {
-        // Update local state
+        // Update the local state through parent component
         onUpdateGroup({
           group_name: editedName,
           description: editedDescription
         });
+        
+        // Exit edit mode
         setIsEditing(false);
+        
+        // Show success message (could use a toast notification here)
+        console.log("Group updated successfully");
       } else {
         setError(data.message || "Failed to update group");
       }
     } catch (error) {
+      console.error("Error updating group:", error);
       setError("Error updating group: " + error.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1152,6 +1329,69 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
     );
   };
 
+  // Show confirmation modal for removing a member
+  const handleShowRemoveMemberConfirmation = (member) => {
+    setMemberToRemove(member);
+    setShowRemoveMemberConfirmation(true);
+    setRemoveError(null);
+  };
+
+  // Handle the actual member removal
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    
+    setIsRemoving(true);
+    setRemoveError(null);
+    
+    try {
+      const token = await SecurityUtils.getCookie("idToken");
+      if (!token) {
+        setRemoveError("Authentication required");
+        setIsRemoving(false);
+        return;
+      }
+      
+      console.log("Sending remove member request:", {
+        id_token: token,
+        group_id: groupId,
+        user_id: memberToRemove.user_id
+      });
+      
+      const response = await fetch(`${API_URL}/remove-from-group/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_token: token,
+          group_id: groupId,
+          user_id: memberToRemove.user_id
+        }),
+      });
+      
+      const data = await response.json();
+      console.log("Remove member response:", data);
+      
+      if (data.status === "SUCCESS") {
+        // Update the local state by removing the member
+        onUpdateGroup({
+          removedMemberId: memberToRemove.user_id
+        });
+        
+        // Close the confirmation modal
+        setShowRemoveMemberConfirmation(false);
+        setMemberToRemove(null);
+      } else {
+        setRemoveError(data.message || "Failed to remove member");
+      }
+    } catch (error) {
+      console.error("Error removing member:", error);
+      setRemoveError("Error removing member: " + error.message);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   return (
     <>
       {/* Header with back button */}
@@ -1235,7 +1475,14 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
                   onClick={handleSaveChanges}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  Save
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save"
+                  )}
                 </Button>
               </div>
             </div>
@@ -1317,9 +1564,9 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
 
           <ul className="space-y-2">
             {groupMembers?.map(member => (
-              <li key={member.user_id} className="flex items-center p-2 rounded-md hover:bg-zinc-800">
+              <li key={member.user_id} className="flex items-center p-2 rounded-md hover:bg-zinc-800 group">
                 <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={member.avatar_url} alt={member.full_name} />
+                  <AvatarImage src={member.profile_photo} alt={member.full_name} />
                   <AvatarFallback className="bg-zinc-700">
                     {member.full_name?.charAt(0)}
                   </AvatarFallback>
@@ -1337,6 +1584,19 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
                     </p>
                   )}
                 </div>
+                
+                {/* Add remove member button (only for admins) - NOW ONLY SHOWS ON HOVER */}
+                {isAdmin && member.role !== 'admin' && member.user_id !== userId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleShowRemoveMemberConfirmation(member)}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Remove
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -1429,6 +1689,7 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal />
       <LeaveConfirmationModal />
+      <RemoveMemberConfirmationModal />
     </>
   );
 };
@@ -1441,7 +1702,9 @@ GroupInfoView.propTypes = {
   invitedUsers: PropTypes.array,
   isAdmin: PropTypes.bool,
   onBack: PropTypes.func.isRequired,
-  onUpdateGroup: PropTypes.func.isRequired
+  onUpdateGroup: PropTypes.func.isRequired,
+  userId: PropTypes.string.isRequired
 };
+
 
 export default GroupChatContainer;

@@ -33,6 +33,7 @@ const UserProfile = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const navigate = useNavigate()
 
 
@@ -71,25 +72,45 @@ const UserProfile = () => {
   }, [navigate])
 
   const handleDeleteProfile = async () => {
+    if (deleteConfirmation !== "DELETE") {
+      setError("Please type DELETE to confirm");
+      return;
+    }
+    
     setIsDeleting(true);
     try {
+      const id_token = Cookies.get('idToken');
+      const access_token = Cookies.get('accessToken'); // Get the access token - important!
+      
+      if (!access_token) {
+        setError('Access token not found. Please login again.');
+        setIsDeleting(false);
+        return;
+      }
+      
       const response = await fetch('http://127.0.0.1:8000/api/delete-profile/', {
-        method: 'DELETE',
+        method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id_token: Cookies.get('idToken')
+          access_token: access_token, // The API expects access_token instead of id_token
+          confirmation: "DELETE" // The API also expects a confirmation field
         })
       });
 
       if (response.ok) {
+        // Clear all auth cookies
         Cookies.remove('idToken');
+        Cookies.remove('accessToken');
+        Cookies.remove('refreshToken');
         navigate('/login');
       } else {
-        setError('Failed to delete profile');
+        const data = await response.json();
+        setError(data.message || 'Failed to delete profile');
       }
     } catch (error) {
+      console.error('Error deleting profile:', error);
       setError('Failed to delete profile');
     } finally {
       setIsDeleting(false);
@@ -133,7 +154,8 @@ const UserProfile = () => {
   }
 
   const DeleteConfirmationModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+         onClick={(e) => e.stopPropagation()}>
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 max-w-sm w-full mx-4 text-white">
         <div className="flex items-center justify-center mb-4 text-red-400">
           <AlertTriangle size={48} />
@@ -142,16 +164,39 @@ const UserProfile = () => {
         <p className="text-gray-400 text-center mb-6">
           This action cannot be undone. All your data will be permanently deleted.
         </p>
+        
+        <div className="mb-6">
+          <label className="block text-gray-400 text-sm mb-2">
+            Type <span className="font-bold">DELETE</span> to confirm:
+          </label>
+          <input
+            type="text"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            autoFocus
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+            placeholder="DELETE"
+          />
+          {error && error.includes("DELETE") && (
+            <p className="text-red-500 text-xs mt-1">{error}</p>
+          )}
+        </div>
+        
         <div className="flex gap-4">
           <button
-            onClick={() => setShowDeleteModal(false)}
+            onClick={() => {
+              setShowDeleteModal(false);
+              setDeleteConfirmation("");
+              setError(null);
+            }}
             className="flex-1 py-2 px-4 rounded-lg border border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
           >
             Cancel
           </button>
           <button
             onClick={handleDeleteProfile}
-            disabled={isDeleting}
+            disabled={isDeleting || deleteConfirmation !== "DELETE"}
             className="flex-1 py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 
                      disabled:opacity-50 disabled:cursor-not-allowed"
           >

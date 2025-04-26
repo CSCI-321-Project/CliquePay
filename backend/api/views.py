@@ -7,7 +7,7 @@ from cliquepay.aws_cognito import CognitoService
 from cliquepay.db_service import DatabaseService
 from .serializers import *
 from cliquepay.storage_service import CloudStorageService
-from api.serializers import SearchUserSerializer, GetDirectMessagesSerializer, GetGroupMessagesSerializer, InviteSearchListSerializer
+from api.serializers import SearchUserSerializer, GetDirectMessagesBetweenUsersSerializer, GetDirectMessagesSerializer, GetGroupMessagesSerializer, InviteSearchListSerializer
 import logging
 from django.db import models
 from datetime import datetime
@@ -203,6 +203,11 @@ def api_root(request, format=None):
                 'method':'POST',
                 'description':'cancel group invite.'
             },
+            'get-direct-messages-between-users':{
+                'url':reverse('get_direct_messages_between_users', request=request, format=format),
+                'method':'POST',
+                'description':'Get direct messages between the authenticated user and a specific user.'
+            },
             'get-financial-summary':{
                 'url':reverse('get_financial_summary', request=request, format=format),
                 'method':'POST',
@@ -237,7 +242,12 @@ def api_root(request, format=None):
                 'url':reverse('remove_from_group', request=request, format=format),
                 'method':'POST',
                 'description':'remove user from group.'
-            }
+            },
+            'delete-profile': {
+                'url': reverse('delete_user_profile', request=request, format=format),
+                'method': 'POST',
+                'description': 'Delete user profile and deactivate account.'
+            },
         },
         'version': 'development',
         'status': 'online',
@@ -942,6 +952,8 @@ def get_direct_messages(request):
         decoded = cognito.get_user_id(serializer.validated_data['id_token'])
         if decoded['status'] == 'SUCCESS':
             db = DatabaseService()
+            print(f"Decoded token: {decoded}")
+            print(f"user_sub: {decoded['user_sub']}")
             result = db.get_direct_messages(decoded['user_sub'], serializer.validated_data.get('page'), serializer.validated_data.get('page_size')) 
             if result['status'] == 'SUCCESS':
                 return JsonResponse(result, status=status.HTTP_200_OK)
@@ -2106,6 +2118,98 @@ def remove_from_group(request):
                 return Response(result, status=status.HTTP_200_OK)
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(decoded, status=status.HTTP_401_UNAUTHORIZED)
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def get_direct_messages_between_users(request):
+    """
+    Get direct messages between the authenticated user and a specific user.
+    
+    Request Body:
+    {
+        "id_token": "your-id-token",
+        "recipient_id": "other-user-id",
+        "page" (optional): 1,
+        "page_size" (optional): 20
+    }
+    """
+    serializer = GetDirectMessagesBetweenUsersSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        decoded = cognito.get_user_id(serializer.validated_data['id_token'])
+        if decoded['status'] == 'SUCCESS':
+            db = DatabaseService()
+            result = db.get_direct_messages_between_users(
+                cognito_id=decoded['user_sub'],
+                recipient_id=serializer.validated_data['recipient_id'],
+                page=serializer.validated_data.get('page', 1),
+                page_size=serializer.validated_data.get('page_size', 20)
+            )
+            if result['status'] == 'SUCCESS':
+                return JsonResponse(result, status=status.HTTP_200_OK)
+            return JsonResponse(result, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(decoded, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def delete_user_profile(request):
+    """
+    Delete user profile - removes profile picture from storage and
+    deactivates the user account in Cognito.
+    
+    Request body:
+    {
+        "access_token": "user-access-token",
+        "confirmation": "DELETE" (must be this exact string to confirm deletion)
+    }
+    """
+    serializer = DeleteUserProfileSerializer(data=request.data)
+    if serializer.is_valid():
+        # First, authenticate the user
+        cognito = CognitoService()
+        auth_result = cognito.check_user_auth(serializer.validated_data['access_token'])
+        
+        if auth_result['status'] != 'SUCCESS':
+            return Response(auth_result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Delete user's profile picture from cloud storage if not default
+        storage = CloudStorageService()
+        storage.delete_user_profile_picture(auth_result['user_sub'])
+        
+        # Delete user data from the database using the dedicated method
+        db = DatabaseService()
+        delete_result = db.delete_user_account(auth_result['user_sub'])
+        
+        if delete_result['status'] != 'SUCCESS':
+            logger.warning(f"Database deletion issue: {delete_result['message']}")
+        
+        # Finally, deactivate the user account in Cognito
+        deactivate_result = cognito.deactivate_user_account(serializer.validated_data['access_token'])
+        
+        if deactivate_result['status'] == 'SUCCESS':
+            # The account was successfully deactivated
+            return Response({
+                'status': 'success',
+                'message': 'User profile deleted successfully. Your account has been deactivated.'
+            }, status=status.HTTP_200_OK)
+        else:
+            # Something went wrong during account deactivation
+            return Response({
+                'status': 'error',
+                'message': 'Failed to completely deactivate account',
+                'details': deactivate_result.get('message'),
+                'note': 'Your profile data was deleted but account deactivation failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     return Response({
         'status': 'error',
         'message': 'Invalid input',
