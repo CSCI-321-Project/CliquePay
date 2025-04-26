@@ -242,7 +242,12 @@ def api_root(request, format=None):
                 'url':reverse('remove_from_group', request=request, format=format),
                 'method':'POST',
                 'description':'remove user from group.'
-            }
+            },
+            'delete-profile': {
+                'url': reverse('delete_user_profile', request=request, format=format),
+                'method': 'POST',
+                'description': 'Delete user profile and deactivate account.'
+            },
         },
         'version': 'development',
         'status': 'online',
@@ -2150,6 +2155,62 @@ def get_direct_messages_between_users(request):
         return JsonResponse(decoded, status=status.HTTP_401_UNAUTHORIZED)
     
     return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def delete_user_profile(request):
+    """
+    Delete user profile - removes profile picture from storage and
+    deactivates the user account in Cognito.
+    
+    Request body:
+    {
+        "access_token": "user-access-token",
+        "confirmation": "DELETE" (must be this exact string to confirm deletion)
+    }
+    """
+    serializer = DeleteUserProfileSerializer(data=request.data)
+    if serializer.is_valid():
+        # First, authenticate the user
+        cognito = CognitoService()
+        auth_result = cognito.check_user_auth(serializer.validated_data['access_token'])
+        
+        if auth_result['status'] != 'SUCCESS':
+            return Response(auth_result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Delete user's profile picture from cloud storage if not default
+        storage = CloudStorageService()
+        storage.delete_user_profile_picture(auth_result['user_sub'])
+        
+        # Delete user data from the database using the dedicated method
+        db = DatabaseService()
+        delete_result = db.delete_user_account(auth_result['user_sub'])
+        
+        if delete_result['status'] != 'SUCCESS':
+            logger.warning(f"Database deletion issue: {delete_result['message']}")
+        
+        # Finally, deactivate the user account in Cognito
+        deactivate_result = cognito.deactivate_user_account(serializer.validated_data['access_token'])
+        
+        if deactivate_result['status'] == 'SUCCESS':
+            # The account was successfully deactivated
+            return Response({
+                'status': 'success',
+                'message': 'User profile deleted successfully. Your account has been deactivated.'
+            }, status=status.HTTP_200_OK)
+        else:
+            # Something went wrong during account deactivation
+            return Response({
+                'status': 'error',
+                'message': 'Failed to completely deactivate account',
+                'details': deactivate_result.get('message'),
+                'note': 'Your profile data was deleted but account deactivation failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    return Response({
         'status': 'error',
         'message': 'Invalid input',
         'errors': serializer.errors

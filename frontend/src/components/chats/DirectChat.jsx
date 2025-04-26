@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { SecurityUtils } from "../../utils/Security.js";
 import { cn } from "../../lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
+import EventSourceService from './EventSource.js';
   
 // Format message timestamp for display
 const formatMessageTime = (timestamp) => {
@@ -401,6 +402,45 @@ export default function DirectChat({ recipientInfo, onBack }) {
     }
 
     return false;
+  };
+  
+  useEffect(() => {
+    if (!currentUserId) return;
+    
+    // Connect to SSE
+    const connectSSE = async () => {
+      await EventSourceService.connect(currentUserId);
+      
+      // Add message listener
+      EventSourceService.addEventListener('message', handleSSEMessage);
+    };
+    
+    connectSSE();
+    
+    // Clean up on unmount
+    return () => {
+      EventSourceService.removeEventListener('message', handleSSEMessage);
+      EventSourceService.disconnect();
+    };
+  }, [currentUserId]);
+  
+  const handleSSEMessage = (data) => {
+    if (data.type === 'message') {
+      const newMessage = data.message;
+      
+      // Only process messages related to this conversation
+      if (
+        (newMessage.sender_id === recipientInfo.user_id && newMessage.recipient_id === currentUserId) ||
+        (newMessage.sender_id === currentUserId && newMessage.recipient_id === recipientInfo.user_id)
+      ) {
+        // Check if we already have this message (avoid duplicates)
+        const messageExists = messages.some(msg => msg.id === newMessage.id);
+        
+        if (!messageExists) {
+          setMessages(prev => [...prev, newMessage]);
+        }
+      }
+    }
   };
   
   return (

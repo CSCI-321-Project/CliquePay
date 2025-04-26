@@ -119,6 +119,47 @@ class CognitoService:
                 'error_code': e.response['Error']['Code'],
                 'message': e.response['Error']['Message']
             }
+            
+    def deactivate_user_account(self, access_token):
+        """
+        Deactivate or delete a user account using their access token
+        
+        Args:
+            access_token (str): The user's access token
+            
+        Returns:
+            dict: Status of the deactivation operation
+        """
+        try:
+            # First identify the user from the access token
+            user_info = self.check_user_auth(access_token)
+            
+            if user_info['status'] != 'SUCCESS':
+                return user_info
+                
+            # Delete the user from Cognito
+            result = self.client.admin_delete_user(
+                UserPoolId=settings.COGNITO_USER_POOL_ID,
+                Username=user_info['username']
+            )
+            
+            return {
+                'status': 'SUCCESS',
+                'message': 'User account deactivated successfully',
+                'user_sub': user_info.get('user_sub')
+            }
+            
+        except self.client.exceptions.UserNotFoundException:
+            return {
+                'status': 'ERROR',
+                'message': 'User not found'
+            }
+        except ClientError as e:
+            return {
+                'status': 'ERROR',
+                'error_code': e.response['Error']['Code'],
+                'message': e.response['Error']['Message']
+            }
 
     def confirm_sign_up(self, username, confirmation_code):
         try:
@@ -550,4 +591,4 @@ class CognitoService:
                 'error_code': e.response['Error']['Code'],
                 'message': e.response['Error']['Message']
             }
-            
+

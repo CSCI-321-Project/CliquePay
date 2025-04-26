@@ -50,5 +50,6 @@ urlpatterns = [
     path('api/delete-group/',views.delete_group, name='delete_group'),
     path('api/edit-group/',views.edit_group, name='edit_group'),
     path('api/remove-from-group/',views.remove_from_group, name='remove_from_group'),
-    path('get-direct-messages-between-users/', views.get_direct_messages_between_users, name='get_direct_messages_between_users'),
+    path('api/get-direct-messages-between-users/', views.get_direct_messages_between_users, name='get_direct_messages_between_users'),
+    path('api/delete-profile/', views.delete_user_profile, name='delete_user_profile'),
 ]

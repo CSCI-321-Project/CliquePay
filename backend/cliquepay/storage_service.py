@@ -64,6 +64,28 @@ class CloudStorageService:
             print(f"DEBUG: Error details: {str(e)}")
             return False
         
+    def delete_user_profile_picture(self, user_id):
+        """
+        Delete a user's profile picture by user ID
+        Returns True if picture was deleted or if user had default picture
+        """
+        try:
+            # Check if this user has a custom profile picture in the database
+            from cliquepay.models import User
+            user = User.objects.get(cognito_id=user_id)
+            
+            # If the user has a custom profile picture (not the default)
+            if user.avatar_url and 'Default_pfp.jpg' not in user.avatar_url:
+                # Delete the picture from cloud storage
+                return self.delete_profile_picture(user.avatar_url)
+            
+            # User has default picture, nothing to delete
+            return True
+            
+        except Exception as e:
+            print(f"Error deleting user profile picture: {str(e)}")
+            return False
+        
     def reset_profile_picture(self, current_url):
         """
         Delete current profile picture and return default picture URL.

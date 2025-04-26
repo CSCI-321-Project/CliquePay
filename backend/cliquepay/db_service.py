@@ -474,9 +474,7 @@ class DatabaseService:
             dict: Status of the get operation with conversation summaries
         '''
         try:
-            print(f"Finding user with cognito_id: {cognito_id}")
             user = User.objects.get(cognito_id=cognito_id)
-            print(f"Found user: {user.id}, {user.name}, {user.email}")
             
             # Check if user has any messages first
             if not DirectMessage.objects.filter(
@@ -1739,5 +1737,46 @@ class DatabaseService:
             return {
                 'status': 'ERROR',
                 'message': str(e)
+            }
+
+    @staticmethod
+    def delete_user_account(cognito_id):
+        """
+        Delete a user account and all associated data from the database
+        
+        Args:
+            cognito_id (str): Cognito user ID
+            
+        Returns:
+            dict: Status of the deletion operation
+        """
+        try:
+            user = User.objects.get(cognito_id=cognito_id)
+            
+            # Store some info before deletion for the return value
+            user_info = {
+                'id': user.id,
+                'username': user.name,
+                'email': user.email
+            }
+            
+            # Delete the user - this will cascade to related records if
+            # on_delete=CASCADE is set in the model relationships
+            user.delete()
+            
+            return {
+                'status': 'SUCCESS',
+                'message': 'User account deleted successfully',
+                'deleted_user': user_info
+            }
+        except User.DoesNotExist:
+            return {
+                'status': 'ERROR',
+                'message': f'User not found with cognito_id: {cognito_id}'
+            }
+        except Exception as e:
+            return {
+                'status': 'ERROR',
+                'message': f'Error deleting user: {str(e)}'
             }
 

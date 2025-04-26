@@ -1,6 +1,11 @@
 from django.db import models
 from django.core.validators import RegexValidator
 import uuid 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from asgiref.sync import async_to_sync
+import asyncio
+from .message_broker import broker
 
 class User(models.Model):
     id = models.CharField(max_length=128, primary_key=True, unique=True)
@@ -168,6 +173,39 @@ class DirectMessage(ChatMessage):
         db_table = 'direct_messages'
         ordering = ['created_at']
 
+@receiver(post_save, sender=DirectMessage)
+def notify_message_created(sender, instance, created, **kwargs):
+    """Trigger SSE event when a new message is created"""
+    if created:  # Only for newly created messages
+        # Prepare the message data
+        message_data = {
+            "event": "message",
+            "data": {
+                "type": "direct_message",
+                "message": {
+                    "message_id": str(instance.id),
+                    "content": instance.content,
+                    "message_type": instance.message_type,
+                    "file_url": instance.file_url,
+                    "timestamp": instance.created_at.isoformat(),
+                    "is_read": instance.is_read
+                },
+                "sender": instance.sender.name,
+                "sender_id": str(instance.sender.id)
+            }
+        }
+        
+        # Send to recipient's channel
+        recipient_channel = f"user-{instance.recipient.id}"
+        
+        # Use async_to_sync since we're in a sync context
+        async_to_sync(broker.publish)(recipient_channel, message_data)
+        
+        # Also send to sender's channel to update sent messages
+        sender_channel = f"user-{instance.sender.id}"
+        message_data["data"]["is_sent_by_me"] = True
+        async_to_sync(broker.publish)(sender_channel, message_data)
+
 class GroupMessage(ChatMessage):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_group_messages')
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='messages')
@@ -176,6 +214,41 @@ class GroupMessage(ChatMessage):
     class Meta:
         db_table = 'group_messages'
         ordering = ['created_at']
+
+@receiver(post_save, sender=GroupMessage)
+def notify_group_message_created(sender, instance, created, **kwargs):
+    """Trigger SSE events when a new group message is created"""
+    if created:
+        # Get all members of the group
+        members = GroupMember.objects.filter(group=instance.group).select_related('user')
+        
+        # Prepare the message data
+        message_data = {
+            "event": "message",
+            "data": {
+                "type": "group_message",
+                "message": {
+                    "message_id": str(instance.id),
+                    "content": instance.content,
+                    "message_type": instance.message_type,
+                    "file_url": instance.file_url,
+                    "timestamp": instance.created_at.isoformat()
+                },
+                "sender": instance.sender.name,
+                "sender_id": str(instance.sender.id),
+                "group_id": str(instance.group.id),
+                "group_name": instance.group.name
+            }
+        }
+        
+        # Send to each member's channel
+        for member in members:
+            user_channel = f"user-{member.user.id}"
+            
+            # Set if sent by current user
+            message_data["data"]["is_sent_by_me"] = (member.user.id == instance.sender.id)
+            
+            async_to_sync(broker.publish)(user_channel, message_data)
 
 class GroupReadReceipt(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='read_receipts')
