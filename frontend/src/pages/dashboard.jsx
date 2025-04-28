@@ -5,12 +5,13 @@ import { renewTokens } from '../utils/RenewTokens';
 import Cookies from 'js-cookie';
 import { ProfileDropdown } from "../components/profile/ProfileDropdown"
 import { Button } from "../components/ui/button"
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { PageLayout, Section, Header, Footer } from "../components/layout/PageLayout"
 import ChatsContainer from "../components/chats/ChatsContainer";
 import { getTotalUnreadCount } from "../components/chats/ChatNotifications";
-import { SecurityUtils } from "../utils/Security";
+import { SecurityUtils } from "../utils/Security.js";
+import AuthenticateUser from "../utils/AuthenticateUser";
+
 import { PaymentModal } from "./newpayment";
 import TransactionContent from "./tab_content/transaction";
 import DashboardContent from "./tab_content/dashboard";
@@ -174,6 +175,7 @@ export default function Dashboard() {
 
   return (
     <PageLayout>
+      <AuthenticateUser>
       {showLogoutModal && <LogoutConfirmationModal />}
 
 
@@ -295,6 +297,7 @@ export default function Dashboard() {
           </div>
         </div>
       </Footer>
+      </AuthenticateUser>
     </PageLayout>
   )
 }
