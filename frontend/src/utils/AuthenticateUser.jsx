@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { SecurityUtils } from '../utils/security';
+import { SecurityUtils } from '../utils/Security';
 import Loading from '../components/Loading';
 import { set } from 'zod';
 import { UserContext } from './UserContext';
