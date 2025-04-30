@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import Loading from '../components/Loading';
-import { SecurityUtils } from '../utils/security';
+import { SecurityUtils } from '../utils/Security.js';
 import { Users, UserPlus, Search, CreditCard, ArrowLeftFromLine, LogOut, X, UserMinus, UserX } from "lucide-react";
 import { set } from 'zod';
 
@@ -116,7 +116,7 @@ function RequestCard({ name, imgSrc, email, onAccept, onDecline }) {
 
 const Content = () => {
     const user = useUser()
-    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+    const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api'
     const [profileData, setProfileData] = useState(null);
     const [loading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);

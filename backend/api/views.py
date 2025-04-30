@@ -249,7 +249,7 @@ def api_root(request, format=None):
                 'description': 'Delete user profile and deactivate account.'
             },
         },
-        'version': 'development',
+        'version': '1.0.0',
         'status': 'online',
         'documentation': 'API documentation will be available soon ~yp'
     })

@@ -16,7 +16,7 @@ export default function ForgotPassword() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState(null);
-    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
     const handleSubmit = async (e) => {
         e.preventDefault();

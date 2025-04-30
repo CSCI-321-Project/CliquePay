@@ -24,7 +24,7 @@ function Verify() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/verify/', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/verify/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ function Verify() {
     setError(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/resend-code/', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/resend-code/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

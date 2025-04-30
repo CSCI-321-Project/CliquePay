@@ -16,7 +16,7 @@ export default function ChatsContainer() {
   const [isLoadingDirects, setIsLoadingDirects] = useState(true);
   const [isLoadingInvites, setIsLoadingInvites] = useState(true);
   const [openDirectChat, setOpenDirectChat] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
   // Format direct chat data helper
   const formatDirectChats = (chats) => {

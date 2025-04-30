@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Meta, useNavigate } from 'react-router-dom';
 import { CreditCard, ArrowLeft, Check, Users, Eye, EyeOff } from "lucide-react";
 import { Button } from "../components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card.jsx";
@@ -120,7 +120,7 @@ export default function SignupPage() {
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/signup/", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/signup/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

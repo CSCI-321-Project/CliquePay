@@ -273,7 +273,7 @@ export const SecurityUtils = {
           return false;
         }
         const response = await SecurityUtils.csrf.fetchWithCSRF(
-          'http://127.0.0.1:8000/api/verify-user-access/',  
+          `${import.meta.env.VITE_API_URL}/api/verify-user-access/`,  
           { 
             method: 'POST',
             body: JSON.stringify({

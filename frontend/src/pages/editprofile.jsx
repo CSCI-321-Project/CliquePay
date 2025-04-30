@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Lock, Save, CreditCard } from 'lucide-react'
 import Cookies from 'js-cookie'
 import { PageLayout, Header, Section } from "../components/layout/PageLayout"
+import AuthenticateUser from '../utils/AuthenticateUser'
 
 const EditProfile = () => {
   const navigate = useNavigate()
@@ -23,7 +24,7 @@ const EditProfile = () => {
       try {
         const id_token = Cookies.get("idToken")
 
-        const response = await fetch('http://127.0.0.1:8000/api/user-profile/', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user-profile/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -43,7 +44,7 @@ const EditProfile = () => {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/update-user-profile/', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/update-user-profile/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -64,6 +65,7 @@ const EditProfile = () => {
 
   return (
     <PageLayout>
+      <AuthenticateUser>
       {/* Header */}
       <Header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm py-4">
         <div className="flex items-center gap-2">
@@ -182,6 +184,7 @@ const EditProfile = () => {
           </div>
         </div>
       </Section>
+      </AuthenticateUser> 
     </PageLayout>
   )
 }

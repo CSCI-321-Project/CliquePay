@@ -9,10 +9,7 @@ const AnalyticsContent = () => {
           <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
             {/* Construction Icon with Animation */}
             <div className="relative mb-6">
-              <BarChart3 className="h-16 w-16 text-purple-400 opacity-50" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-24 w-24 rounded-full border-4 border-t-purple-500 border-r-purple-400 border-b-purple-300 border-l-transparent animate-spin"></div>
-              </div>
+              <BarChart3 className="h-16 w-16 text-purple-400 opacity-50" />  
             </div>
             
             {/* Status Badge */}
@@ -30,9 +27,9 @@ const AnalyticsContent = () => {
             
             {/* Progress Bar */}
             <div className="w-full max-w-md h-2 bg-zinc-700/50 rounded-full overflow-hidden mb-2">
-              <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full" style={{ width: '65%' }}></div>
+              <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full" style={{ width: '55%' }}></div>
             </div>
-            <p className="text-zinc-500 text-sm">Approximately 65% complete</p>
+            <p className="text-zinc-500 text-sm">Approximately 55% complete</p>
             
             {/* Features Coming */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl">
