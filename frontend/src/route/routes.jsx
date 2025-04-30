@@ -6,7 +6,7 @@ import Verify from "../pages/verify";
 import Login from "../pages/login";
 import Dashboard from "../pages/dashboard";
 import UserProfile from "../pages/userprofile";
-import EditProfile from "../pages/editprofile"
+import EditProfile from "../pages/editprofile";
 import Friends from "../pages/friends";
 import ForgotPassword from "../pages/forgot";
 import { ErrorDisplay } from '../components/errorHandling/ErrorBoundary';
@@ -26,10 +26,10 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <Dashboard />, errorElement: <ErrorDisplay /> },
       { path: "profile", element: <UserProfile /> },
       { path: "friends-list", element: <Friends /> },
-      { path: "edit-profile", element: <EditProfile /> },
+      { path: "profile/edit", element: <EditProfile /> },
       { path: "friends", element: <Friends /> },
       { path: "forgot", element: <ForgotPassword/>},
-      { path: "accountsettings", element: <AccountSettings /> }
+      { path: "account", element: <AccountSettings /> }
     ]
   },
   {

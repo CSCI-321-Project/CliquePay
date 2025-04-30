@@ -19,7 +19,7 @@ const InviteMembersList = ({ groupId, onInviteSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL =`${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
   // Search for users
   const handleSearch = async () => {
@@ -387,7 +387,7 @@ const GroupChatContainer = ({ groupId, onBack }) => {
   const [showInviteMembers, setShowInviteMembers] = useState(false);
   
   const messagesEndRef = useRef(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
   const userId = useRef(null);
 
   const scrollToBottom = () => {
@@ -713,12 +713,15 @@ const GroupChatContainer = ({ groupId, onBack }) => {
         
         // Add message if it doesn't already exist in our state
         setMessages(prev => {
-          // Check if we already have this message
+          // Check if we already have this message by ID OR by content+timestamp for temp messages
           const messageExists = prev.some(msg => 
-            msg.message_id === newMessage.message_id
+            msg.message_id === newMessage.message_id || 
+            (msg.content === newMessage.content && 
+             Math.abs(new Date(msg.created_at) - new Date(newMessage.timestamp)) < 5000)
           );
           
           if (messageExists) {
+            console.log("Duplicate message detected, not adding:", newMessage.message_id);
             return prev;
           }
           
@@ -727,7 +730,6 @@ const GroupChatContainer = ({ groupId, onBack }) => {
             message_id: newMessage.message_id,
             content: newMessage.content,
             sender_id: data.sender_id,
-            // Use sender instead of sender_name - this fixes the issue
             sender_name: data.sender || "Unknown User",
             created_at: newMessage.timestamp || new Date().toISOString(),
             status: data.is_sent_by_me ? "SENT" : undefined
@@ -736,6 +738,28 @@ const GroupChatContainer = ({ groupId, onBack }) => {
 
         // Scroll to bottom for new messages
         scrollToBottom();
+      } else if (data.type === 'group_update' && data.group_id === groupId) {
+        // Handle group updates (new members, etc.)
+        console.log("Group update received:", data);
+        
+        // Refresh group info to show new members
+        const fetchUpdatedInfo = async () => {
+          const token = await SecurityUtils.getCookie("idToken");
+          if (token) fetchGroupInfo(token);
+        };
+        fetchUpdatedInfo();
+      } else if (data.type === 'added_to_group') {
+        // This event is fired when the current user is added to a group
+        console.log("User added to group:", data);
+        
+        // If this is about the current group, refresh data
+        if (data.group_id === groupId) {
+          const fetchUpdatedInfo = async () => {
+            const token = await SecurityUtils.getCookie("idToken");
+            if (token) fetchGroupInfo(token);
+          };
+          fetchUpdatedInfo();
+        }
       }
     };
     
@@ -927,7 +951,7 @@ const GroupInfoView = ({ groupId, groupInfo, groupMembers, invitedUsers, isAdmin
   const [leaveError, setLeaveError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
   const [showRemoveMemberConfirmation, setShowRemoveMemberConfirmation] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);

@@ -23,7 +23,7 @@ class EventSourceService {
         return false;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const API_URL = `${import.meta.env.VITE_API_URL}` || 'http://localhost:8000';
       // Remove token from URL
       const url = `${API_URL}/events/user-${userId}/`;
       console.log(`Connecting to SSE at: ${url}`);

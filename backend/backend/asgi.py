@@ -132,7 +132,6 @@ sse_patterns = [
 
 # Create ASGI application with HTTP handler
 application = ProtocolTypeRouter({
-    # Use a simpler pattern that first checks for SSE URLs, then passes to Django
     "http": URLRouter(sse_patterns + [
         # For all other paths, use Django's ASGI application
         re_path(r"", django_asgi_app),

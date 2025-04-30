@@ -15,7 +15,7 @@ const SettleUpModal = ({ onClose, onConfirm, amount, isProcessing, onSuccess, se
     const [settlements, setSettlements] = useState([]);
     const [success, setSuccess] = useState(false); 
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
     
     useEffect(() => {
         fetchSettlementData();

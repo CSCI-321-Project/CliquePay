@@ -28,7 +28,7 @@ const Loading = ({ size = "md" }) => {
 export default function GroupInvitesList({ invites = [], isLoading, onInviteAction }) {
   const [processingInvites, setProcessingInvites] = useState({});
   const [errors, setErrors] = useState({});
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
   const handleInviteAction = async (inviteId, action) => {
     // Set this invite as processing

@@ -80,7 +80,7 @@ const NewGroupModal = ({ onClose, onGroupCreated }) => {
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api'
 
   const handleSubmit = async(e) => {
     e.preventDefault();
@@ -181,7 +181,7 @@ export default function GroupChatsList({ groups = [], isLoading, onGroupCreate }
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [error, setError] = useState("");
   const [openGroup, setOpenGroup] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
   
   // Handle creating a new group - delegates to parent
   const handleCreateGroup = (newGroupData) => {

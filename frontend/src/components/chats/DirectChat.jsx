@@ -130,7 +130,7 @@ export default function DirectChat({ recipientInfo, onBack }) {
   
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://localhost:8000/api';
   
   // Fetch current user ID when component mounts
   useEffect(() => {
@@ -446,44 +446,52 @@ export default function DirectChat({ recipientInfo, onBack }) {
     };
   }, [currentUserId]);
   
-  const handleSSEMessage = (data) => {
-    console.log("SSE message received:", data);
+  // Update the handleSSEMessage function
+
+const handleSSEMessage = (data) => {
+  console.log("SSE message received:", data);
+  
+  if (data.type === 'direct_message') {
+    const newMessage = data.message;
     
-    if (data.type === 'direct_message') {
-      const newMessage = data.message;
-      
-      // Only process messages related to this conversation
-      if (
-        (data.sender_id === recipientInfo.user_id) || 
-        (data.is_sent_by_me && data.sender_id === currentUserId)
-      ) {
-        // Check if we already have this message (avoid duplicates)
-        setMessages(prev => {
-          // Check if message already exists by comparing message_id
-          const messageExists = prev.some(msg => 
-            msg.id === newMessage.message_id || 
-            msg.message_id === newMessage.message_id
-          );
-          
-          if (messageExists) {
-            console.log("Duplicate message detected, not adding");
-            return prev;
-          }
-          
-          console.log("Adding new message to state");
-          return [...prev, {
-            id: newMessage.message_id,
-            content: newMessage.content,
-            timestamp: newMessage.timestamp,
-            sender_id: data.sender_id,
-            is_sent_by_me: data.is_sent_by_me,
-            message_type: newMessage.message_type,
-            status: "SENT"
-          }];
-        });
-      }
+    // Only process messages related to this conversation
+    if (
+      (data.sender_id === recipientInfo.user_id) || 
+      (data.is_sent_by_me && data.sender_id === currentUserId)
+    ) {
+      // Check if we already have this message (avoid duplicates)
+      setMessages(prev => {
+        // Improved duplicate detection logic
+        const messageExists = prev.some(msg => 
+          // Check by ID
+          msg.id === newMessage.message_id || 
+          msg.message_id === newMessage.message_id ||
+          // Check temporary messages by content and approximate timestamp
+          (msg.id && msg.id.toString().startsWith('temp-') && 
+           msg.content === newMessage.content &&
+           // Only consider messages sent within 5 seconds
+           Math.abs(new Date(msg.timestamp) - new Date(newMessage.timestamp)) < 5000)
+        );
+        
+        if (messageExists) {
+          console.log("Duplicate message detected, not adding");
+          return prev;
+        }
+        
+        console.log("Adding new message to state");
+        return [...prev, {
+          id: newMessage.message_id,
+          content: newMessage.content,
+          timestamp: newMessage.timestamp,
+          sender_id: data.sender_id,
+          is_sent_by_me: data.is_sent_by_me,
+          message_type: newMessage.message_type,
+          status: "SENT"
+        }];
+      });
     }
-  };
+  }
+};
   
   return (
     <div className="flex flex-col h-full bg-zinc-900 rounded-lg border border-zinc-800">

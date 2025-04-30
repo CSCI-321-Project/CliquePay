@@ -46,7 +46,7 @@ const UserProfile = () => {
           return
         }
   
-        const response = await fetch("http://127.0.0.1:8000/api/user-profile/", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user-profile/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -88,7 +88,7 @@ const UserProfile = () => {
         return;
       }
       
-      const response = await fetch('http://127.0.0.1:8000/api/delete-profile/', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/delete-profile/`, {
         method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
